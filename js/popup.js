@@ -39,6 +39,8 @@ function getFeedsURLs(url, callback) {
                 feed_url = links[i].getAttribute('href');
                 if (feed_url.indexOf("//") == 0)
                     feed_url = "http:" + feed_url;
+                else if (/^(http|https):\/\//i.test(feed_url))
+                    feed_url = feed_url;
                 else
                     feed_url = url + "/" + feed_url.replace(/^\//g, '');
 
