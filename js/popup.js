@@ -4,13 +4,13 @@
  */
 function getFeedsURLs(url, callback) {
 
-    var feeds_urls = [];
-
     // Check if it's a Youtube URL (channel or user feed)
     var ytRss = getYoutubeRss(url);
 
     if (ytRss !== false)
     {
+        var feeds_urls = [];
+        
         var feed = {
             type: '',
             url: ytRss,
@@ -18,6 +18,8 @@ function getFeedsURLs(url, callback) {
         };
         
         feeds_urls.push(feed);
+
+        callback(feeds_urls);
     }
     else
     {
@@ -28,6 +30,7 @@ function getFeedsURLs(url, callback) {
         x.onload = function() {
             var response = x.response;
 
+            var feeds_urls = [];
             var types = [
                 'application/rss+xml',
                 'application/atom+xml',
@@ -70,6 +73,8 @@ function getFeedsURLs(url, callback) {
                     feeds_urls.push(feed);
                 }
             }
+
+            callback(feeds_urls);
         };
 
         x.onerror = function() {
@@ -78,8 +83,6 @@ function getFeedsURLs(url, callback) {
 
         x.send();
     }
-
-    callback(feeds_urls);
 }
 
 
