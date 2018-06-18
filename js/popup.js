@@ -57,8 +57,14 @@ function getFeedsURLs(url, callback) {
                 if (links[i].hasAttribute('type') && types.indexOf(links[i].getAttribute('type')) !== -1)
                 {
                     feed_url = links[i].getAttribute('href');
+
+                    // If feed's url starts with "//"
                     if (feed_url.indexOf("//") == 0)
                         feed_url = "http:" + feed_url;
+                    // If feed's url starts with "/"
+                    else if (feed_url.startsWith('/'))
+                        feed_url = url.split('/')[0] + '//' + url.split('/')[2] + feed_url;
+                    // If feed's url starts with http or https
                     else if (/^(http|https):\/\//i.test(feed_url))
                         feed_url = feed_url;
                     else
