@@ -15,7 +15,7 @@ This extension makes it possible to avoid this manipulation because the URLs of 
 
 # Install
 
-Install this extension from [**Chrome Web Store**](https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn?hl=fr).
+Install this extension from [**Chrome Web Store**](https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn).
 
 
 # Feedback
