@@ -6,11 +6,13 @@
 # What is Get RSS Feed URL Extension?
 
 
-**get-rss-feed-url-extension is a Google Chrome extension that provides links to the various RSS/Atom feeds of a website.**
+**Get RSS Feed URL is a Google Chrome extension that provides links to the various RSS/Atom feeds of a website.**
 
 Indeed, websites do not always provide a direct link to the RSS feed. It is then necessary to look in the source code of the website and find the URL of the feed.
 
-This extension makes it possible to avoid this manipulation because the URLs of the RSS feeds of the website are displayed directly!
+This extension makes it possible to avoid this manipulation because the URLs of the RSS feeds of the website are displayed directly and can be copied with one click!
+
+In addition, this extension allows you to easily retrieve the RSS feed from a Youtube channel / user or from a subreddit!
 
 
 # Install
@@ -33,11 +35,13 @@ If you encounter a problem using get-rss-feed-url-extension, or would like to re
 # Qu'est-ce que Get RSS Feed URL Extension ?
 
 
-**get-rss-feed-url-extension est une extension Google Chrome qui permet d'obtenir les liens vers les différents flux RSS/Atom d'un site Internet.**
+**Get RSS Feed URL est une extension Google Chrome qui permet d'obtenir les liens vers les différents flux RSS/Atom d'un site Internet.**
 
 En effet, les sites Internet ne mettent pas toujours à disposition un lien direct vers le flux RSS. Il faut alors chercher dans le code source et trouver l'URL du flux.
 
-Cette extension permet d'éviter cette manipulation car les URL des flux RSS du site Internet sont affichés directement !
+Cette extension permet d'éviter cette manipulation car les URL des flux RSS du site Internet sont affichés directement et peuvent être copiés d'un simple clic !
+
+De plus, cette extension vous permet de récupérer facilement le flux RSS d'une chaîne ou utilisateur Youtube ou d'un subreddit !
 
 
 # Installation

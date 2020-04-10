@@ -14,16 +14,43 @@ body.rss-feed-url {
     overflow-x: hidden;
     overflow-y: auto;
 }
-.rss-feed-url #feeds ul {
-    list-style-type: square;
-    margin: 0;
-    padding-left: 15px;
+.rss-feed-url #feeds table {
+    width: 100%;
+    border-collapse: collapse;
 }
-.rss-feed-url #feeds a {
+.rss-feed-url #feeds table tr:hover td {
+    background-color: rgba(255, 156, 0, 0.1);
+}
+.rss-feed-url #feeds table td.feed-title {
+    max-width: 100px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 8px 5px;
+}
+.rss-feed-url #feeds table td.feed-copy {
+    width: 60px;
+    text-align: right;
+}
+.rss-feed-url #feeds a.link {
     color: #000;
     text-decoration: underline;
     font-size: 14px;
-    line-height: 24px;
+}
+.rss-feed-url #feeds a.link:hover {
+    text-decoration: none;
+}
+.rss-feed-url #feeds a.copyLink {
+    background-color: #ff9c00;
+    color: #fff;
+    font-size: 10px;
+    padding: 5px;
+    text-decoration: none;
+    border-radius: 4px;
+    display: inline-block;
+}
+.rss-feed-url #feeds a.copyLink:hover {
+    background-color: #e48e04;
 }
 
 .rss-feed-url header {
