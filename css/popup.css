@@ -40,7 +40,7 @@ body.rss-feed-url {
 .rss-feed-url #feeds a.link:hover {
     text-decoration: none;
 }
-.rss-feed-url #feeds a.copyLink {
+.rss-feed-url #feeds a.copyButton {
     background-color: #ff9c00;
     color: #fff;
     font-size: 10px;
@@ -49,8 +49,20 @@ body.rss-feed-url {
     border-radius: 4px;
     display: inline-block;
 }
-.rss-feed-url #feeds a.copyLink:hover {
+.rss-feed-url #feeds a.copyButton:hover {
     background-color: #e48e04;
+}
+
+.rss-feed-url #feeds .copyAllLinks-container {
+    text-align: right;
+    margin-top: 5px;
+}
+.rss-feed-url #feeds a#copyAllLinks {
+    color: #ff9c00;
+    font-size: 10px;
+}
+.rss-feed-url #feeds a#copyAllLinks:hover {
+    text-decoration: none;
 }
 
 .rss-feed-url header {

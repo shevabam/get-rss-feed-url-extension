@@ -97,6 +97,13 @@ function getFeedsURLs(url, callback) {
                 }
             }
 
+            if (feeds_urls.length === 0)
+            {
+                var test_feed = tryToGetFeedURL(url);
+                if (test_feed !== null)
+                    feeds_urls.push(test_feed);
+            }
+
             callback(feeds_urls);
         };
 
@@ -181,9 +188,9 @@ function getRedditRss(tabUrl)
 /**
  * Prints message in #feeds
  */
-function render(msg)
+function render(content)
 {
-    document.getElementById('feeds').innerHTML = msg;
+    document.getElementById('feeds').innerHTML = content;
 }
 
 /*
@@ -205,8 +212,70 @@ function copyToClipboard(text, notification) {
         message: notification.message,
         iconUrl: "img/notif_"+notification.type+".png"
     });
-};
+}
 
+
+/*
+ * Parse an URL to return host, protocol, ...
+ */
+function parseUrl(string) {
+    const a = document.createElement('a'); 
+    a.setAttribute('href', string);
+    const {host, hostname, pathname, port, protocol, search, hash} = a;
+    const origin = `${protocol}//${hostname}${port.length ? `:${port}`:''}`;
+    return {origin, host, hostname, pathname, port, protocol, search, hash}
+}
+
+
+/**
+ * Attempt to find an RSS feed URL by providing a suffix
+ */
+function tryToGetFeedURL(tabUrl) {
+    var url_datas = parseUrl(tabUrl);
+    var feed = null;
+    var isFound = false;
+
+    var tests = ['/feed', '/rss', '/rss.xml', '/feed.xml'];
+
+    for (var t = 0; t < tests.length; t++) {
+        if (isFound === false) {
+            var feed_url = url_datas.origin + tests[t];
+
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function(){
+                if (xhr.readyState == 4 && xhr.status == 200) {
+                    return xhr.responseText;
+                }
+            };
+            xhr.open("GET", feed_url, false);
+            xhr.send();
+
+            var urlContent = xhr.responseText;
+            if (xhr.status != 404 && urlContent != '')
+            {
+                var oParser = new DOMParser();
+                var oDOM = oParser.parseFromString(urlContent, "application/xml");
+
+                var getRssTag = oDOM.getElementsByTagName('rss');
+                if (getRssTag.length > 0) {
+                    var getChannelTag = getRssTag['0'].getElementsByTagName('channel')
+
+                    if (getChannelTag.length > 0) {
+                        isFound = true;
+
+                        feed = {
+                            type: '',
+                            url: feed_url,
+                            title: feed_url
+                        };
+                    }
+                }
+            }
+        }
+    }
+
+    return feed;
+}
 
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -218,46 +287,62 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (feeds.length > 0)
             {
-                var html = '<table>';
-                for (i = 0; i < feeds.length; i++)
-                {
+                var html = '<table id="feeds-list">';
+                for (i = 0; i < feeds.length; i++) {
                     html += '<tr>';
                     html +=   '<td class="feed-title">';
                     html +=     '<a class="link" href="'+feeds[i].url+'" title="Open feed URL" data-tabtitle="'+tab.title+'" target="_blank">'+feeds[i].title+'</a>';
                     html +=   '</td>';
                     html +=   '<td class="feed-copy">';
-                    html +=     '<a class="copyLink" title="Copy feed URL" href="#">Copy URL</a>';
+                    html +=     '<a class="copyButton copyLink" title="Copy feed URL" href="#">Copy URL</a>';
                     html +=   '</td>';
                     html += '</tr>';
                 }
                 html += '</table>';
 
+                html += '<div class="copyAllLinks-container">';
+                html +=   '<a id="copyAllLinks" class="" title="Copy all feeds URLs" href="#">Copy all URLs</a>';
+                html += '</div>';
+
                 render(html);
+
+
+                // Copy to clipboard feed URL
+                var copyButtons = document.getElementsByClassName('copyLink');
+    
+                for (let i = 0; i < copyButtons.length; i++) {
+                    copyButtons[i].addEventListener("click", function() {
+                        var feed = this.parentNode.parentNode.querySelector('a.link');
+                        var url = feed.getAttribute('href');
+                        var tabTitle = feed.getAttribute('data-tabtitle');
+    
+                        copyToClipboard(url, {type: "success", title: tabTitle, message: "Feed URL copied in clipboard!"});
+                    });
+                }
+    
+                
+                // Copy to clipboard all feeds URLs
+                var copyButtonAll = document.getElementById('copyAllLinks');
+    
+                copyButtonAll.addEventListener("click", function() {
+                    var feeds_list = document.getElementById('feeds-list').querySelectorAll('.feed-title a.link');
+    
+                    var text = '';
+                    for (var j = 0; j < feeds_list.length; j++) {
+                        text += feeds_list[j]+"\n";
+                    }
+                    var textToCopy = text.substring(0, text.length - 1);
+    
+                    copyToClipboard(textToCopy, {type: "success", title: '', message: "Feeds URLs copied in clipboard!"});
+                });
             }
             else
             {
                 render("No feed found");
             }
 
-            
-            // Copy to clipboard feed URL
-            var copyButtons = document.getElementsByClassName('copyLink');
-
-            for (let i = 0; i < copyButtons.length; i++) {
-                copyButtons[i].addEventListener("click", function() {
-                    console.log(this.parentNode);
-
-                    var feed = this.parentNode.parentNode.querySelector('a.link');
-                    var url = feed.getAttribute('href');
-                    var tabTitle = feed.getAttribute('data-tabtitle');
-
-                    copyToClipboard(url, {type: "success", title: tabTitle, message: "Feed URL copied in clipboard!"});
-                });
-            }
-
         });
     });
 });
-
 
 
