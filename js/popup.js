@@ -84,6 +84,9 @@ function getFeedsURLs(url, callback) {
                     // If feed's url starts with http or https
                     else if (/^(http|https):\/\//i.test(feed_url))
                         feed_url = feed_url;
+                    // If feed's has no slash
+                    else if (!feed_url.match(/\//))
+                        feed_url = url.substr(0, url.lastIndexOf("/")) + '/' + feed_url;
                     else
                         feed_url = url + "/" + feed_url.replace(/^\//g, '');
 
@@ -226,6 +229,24 @@ function parseUrl(string) {
     return {origin, host, hostname, pathname, port, protocol, search, hash}
 }
 
+/*
+ * Truncate string in the middle
+ */
+function truncate(fullStr, strLen, separator) {
+    if (fullStr.length <= strLen) return fullStr;
+    
+    separator = separator || '...';
+    
+    var sepLen = separator.length,
+        charsToShow = strLen - sepLen,
+        frontChars = Math.ceil(charsToShow/2),
+        backChars = Math.floor(charsToShow/2);
+    
+    return fullStr.substr(0, frontChars) + 
+           separator + 
+           fullStr.substr(fullStr.length - backChars);
+};
+
 
 /**
  * Attempt to find an RSS feed URL by providing a suffix
@@ -292,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     html += '<tr>';
                     html +=   '<td class="feed-title">';
                     html +=     '<a class="link" href="'+feeds[i].url+'" title="Open feed URL" data-tabtitle="'+tab.title+'" target="_blank">'+feeds[i].title+'</a>';
+                    html +=     '<span class="feed-url">'+truncate(feeds[i].url, 50)+'</span>';
                     html +=   '</td>';
                     html +=   '<td class="feed-copy">';
                     html +=     '<a class="copyButton copyLink" title="Copy feed URL" href="#">Copy URL</a>';

@@ -40,6 +40,10 @@ body.rss-feed-url {
 .rss-feed-url #feeds a.link:hover {
     text-decoration: none;
 }
+.rss-feed-url #feeds span.feed-url {
+    display: block;
+    font-size: 10px;
+}
 .rss-feed-url #feeds a.copyButton {
     background-color: #ff9c00;
     color: #fff;
