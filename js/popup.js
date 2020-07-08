@@ -211,7 +211,7 @@ function copyToClipboard(text, notification) {
 
     chrome.notifications.create('get-rss-feed-url-copy', {
         type: "basic",
-        title: notification.title ?? "Get RSS Feeds URLs",
+        title: notification.title || "Get RSS Feeds URLs",
         message: notification.message,
         iconUrl: "img/notif_"+notification.type+".png"
     });
