@@ -2,7 +2,7 @@
     "manifest_version": 2,
     "name": "Get RSS Feed URL",
     "description": "Retreive RSS feeds URLs from WebSite",
-    "version": "1.3.4",
+    "version": "1.4.0",
     "author": "@shevabam",
     "homepage_url": "https://github.com/shevabam/get-rss-feed-url-extension",
     "permissions": [
@@ -17,7 +17,7 @@
         "default_title": "Click to view RSS feeds for this page"
     },
     "background": {
-        "scripts": ["js/background.js"]
+        "page": "background.html"
     },
     "icons": {
         "128" : "img/icon_128.png"
