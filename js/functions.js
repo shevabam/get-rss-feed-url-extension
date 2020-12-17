@@ -9,6 +9,9 @@ function getFeedsURLs(url, callback) {
     // Check if it's a Reddit URL
     var rdRss = getRedditRss(url);
 
+    // Check if it's a Kickstarter URL
+    var ksRss = getKickstarterRss(url);
+
     if (ytRss !== false)
     {
         var feeds_urls = [];
@@ -37,83 +40,108 @@ function getFeedsURLs(url, callback) {
 
         callback(feeds_urls);
     }
+    else if (ksRss !== false)
+    {
+        var feeds_urls = [];
+        
+        var feed = {
+            type: '',
+            url: ksRss,
+            title: ksRss,
+        };
+        
+        feeds_urls.push(feed);
+
+        callback(feeds_urls);
+    }
     else
     {
-        var x = new XMLHttpRequest();
-        x.open('GET', url);
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == XMLHttpRequest.DONE) {
+                var urlContent = xhr.responseText;
 
-        x.responseType = '';
-        x.onload = function() {
-            var response = x.response;
+                if (urlContent != '')
+                    document.getElementById('rss-feed-url_response').innerHTML = urlContent;
 
-            var feeds_urls = [];
-            var types = [
-                'application/rss+xml',
-                'application/atom+xml',
-                'application/rdf+xml',
-                'application/rss',
-                'application/atom',
-                'application/rdf',
-                'text/rss+xml',
-                'text/atom+xml',
-                'text/rdf+xml',
-                'text/rss',
-                'text/atom',
-                'text/rdf'
-            ];
-
-            document.getElementById('rss-feed-url_response').innerHTML = response;
-
-            var links = document.getElementById('rss-feed-url_response').querySelectorAll("#rss-feed-url_response link[type]");
-
-            document.getElementById('rss-feed-url_response').innerHTML = '';
-
-            for (var i = 0; i < links.length; i++)
-            {
-                if (links[i].hasAttribute('type') && types.indexOf(links[i].getAttribute('type')) !== -1)
-                {
-                    feed_url = links[i].getAttribute('href');
-
-                    // If feed's url starts with "//"
-                    if (feed_url.indexOf("//") == 0)
-                        feed_url = "http:" + feed_url;
-                    // If feed's url starts with "/"
-                    else if (feed_url.startsWith('/'))
-                        feed_url = url.split('/')[0] + '//' + url.split('/')[2] + feed_url;
-                    // If feed's url starts with http or https
-                    else if (/^(http|https):\/\//i.test(feed_url))
-                        feed_url = feed_url;
-                    // If feed's has no slash
-                    else if (!feed_url.match(/\//))
-                        feed_url = url.substr(0, url.lastIndexOf("/")) + '/' + feed_url;
-                    else
-                        feed_url = url + "/" + feed_url.replace(/^\//g, '');
-
-                    var feed = {
-                        type: links[i].getAttribute('type'),
-                        url: feed_url,
-                        title: links[i].getAttribute('title') || feed_url
-                    };
-
-                    feeds_urls.push(feed);
-                }
+                searchFeed(url, callback);
             }
+        }
+        xhr.open('GET', url, true);
+        xhr.send();
+    }
+}
 
-            if (feeds_urls.length === 0)
+/**
+ * Search RSS Feed in source code
+ */
+function searchFeed(url, callback)
+{
+    if (document.getElementById('rss-feed-url_response').innerHTML != '')
+    {
+        var feeds_urls = [];
+        var types = [
+            'application/rss+xml',
+            'application/atom+xml',
+            'application/rdf+xml',
+            'application/rss',
+            'application/atom',
+            'application/rdf',
+            'text/rss+xml',
+            'text/atom+xml',
+            'text/rdf+xml',
+            'text/rss',
+            'text/atom',
+            'text/rdf'
+        ];
+
+        var links = document.getElementById('rss-feed-url_response').querySelectorAll("#rss-feed-url_response link[type]");
+
+        document.getElementById('rss-feed-url_response').innerHTML = '';
+
+        for (var i = 0; i < links.length; i++)
+        {
+            if (links[i].hasAttribute('type') && types.indexOf(links[i].getAttribute('type')) !== -1)
             {
-                var test_feed = tryToGetFeedURL(url);
-                if (test_feed !== null)
-                    feeds_urls.push(test_feed);
+                feed_url = links[i].getAttribute('href');
+
+                // If feed's url starts with "//"
+                if (feed_url.indexOf("//") == 0)
+                    feed_url = "http:" + feed_url;
+                // If feed's url starts with "/"
+                else if (feed_url.startsWith('/'))
+                    feed_url = url.split('/')[0] + '//' + url.split('/')[2] + feed_url;
+                // If feed's url starts with http or https
+                else if (/^(http|https):\/\//i.test(feed_url))
+                    feed_url = feed_url;
+                // If feed's has no slash
+                else if (!feed_url.match(/\//))
+                    feed_url = url.substr(0, url.lastIndexOf("/")) + '/' + feed_url;
+                else
+                    feed_url = url + "/" + feed_url.replace(/^\//g, '');
+
+                var feed = {
+                    type: links[i].getAttribute('type'),
+                    url: feed_url,
+                    title: links[i].getAttribute('title') || feed_url
+                };
+
+                feeds_urls.push(feed);
             }
+        }
 
-            callback(feeds_urls);
-        };
+        if (feeds_urls.length === 0)
+        {
+            var test_feed = tryToGetFeedURL(url);
+            if (test_feed !== null)
+                feeds_urls.push(test_feed);
+        }
 
-        x.onerror = function() {
-            render('Unable to find feed');
-        };
-
-        x.send();
+        callback(feeds_urls);
+    }
+    else
+    {
+        render('Unable to find feed');
     }
 }
 
@@ -174,6 +202,34 @@ function getRedditRss(tabUrl)
         // Remove last "/" if presents
         var feedUrl = tabUrl.replace(/\/$/, '');
         feedUrl = feedUrl + '.rss';
+
+        if (feedUrl != tabUrl)
+            return feedUrl;
+        else
+            return false;
+    }
+    else
+    {
+        return false;
+    }
+}
+
+
+/*
+ * Get RSS feed URL of kickstarter
+ */
+function getKickstarterRss(tabUrl)
+{
+    // Check if subreddit URL
+    var regex = RegExp(/^(http(s)?:\/\/)?((w){3}.)?kickstarter\.com/gm);
+
+    var isKickstarterUrl = regex.test(tabUrl);
+    
+    if (isKickstarterUrl)
+    {
+        // Remove last "/" if presents
+        var feedUrl = tabUrl.replace(/\/$/, '');
+        feedUrl = feedUrl + '.atom';
 
         if (feedUrl != tabUrl)
             return feedUrl;
@@ -263,7 +319,7 @@ function tryToGetFeedURL(tabUrl) {
 
             var xhr = new XMLHttpRequest();
             xhr.onreadystatechange = function(){
-                if (xhr.readyState == 4 && xhr.status == 200) {
+                if (xhr.readyState == XMLHttpRequest.DONE) {
                     return xhr.responseText;
                 }
             };
@@ -271,6 +327,7 @@ function tryToGetFeedURL(tabUrl) {
             xhr.send();
 
             var urlContent = xhr.responseText;
+
             if (xhr.status != 404 && urlContent != '')
             {
                 var oParser = new DOMParser();
