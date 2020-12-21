@@ -28,32 +28,37 @@ function getJSON(url, callback) {
  * Fetch feeds
  */
 function getFeedsURLs(url, callback) {
-    if (url != 'undefined' && typeof url != 'undefined' && _CONFIG_.api_token != '') {
-        var params = {'from': 'extension_get-rss-feed-url'};
+    if (typeof _CONFIG_ != 'undefined' && _CONFIG_.api_token != '') {
+        if (url != 'undefined' && typeof url != 'undefined') {
+            var params = {'from': 'extension_get-rss-feed-url'};
 
-        getJSON('https://get-rss-url-api.shevapps.fr/fetch.php?url='+url+'&params='+JSON.stringify(params), (response) =>  {
+            getJSON('https://get-rss-url-api.shevapps.fr/fetch.php?url='+url+'&params='+JSON.stringify(params), (response) =>  {
 
-            var feeds_urls = [];
+                var feeds_urls = [];
 
-            if (response != null) {
+                if (response != null) {
 
-                for (var i = 0; i < response.datas.feeds.length; i++){
-                    var obj = response.datas.feeds[i];
+                    for (var i = 0; i < response.datas.feeds.length; i++){
+                        var obj = response.datas.feeds[i];
 
-                    var feed_url = obj['url'];
-                    var feed_title = obj['title'];
+                        var feed_url = obj['url'];
+                        var feed_title = obj['title'];
 
-                    var feed = {
-                        url: feed_url,
-                        title: feed_title || feed_url
-                    };
+                        var feed = {
+                            url: feed_url,
+                            title: feed_title || feed_url
+                        };
 
-                    feeds_urls.push(feed);
+                        feeds_urls.push(feed);
+                    }
                 }
-            }
 
-            callback(feeds_urls);
-        });
+                callback(feeds_urls);
+            });
+        }
+    }
+    else {
+        render('Unable to find feed');
     }
 }
 
@@ -62,8 +67,7 @@ function getFeedsURLs(url, callback) {
 /**
  * Prints message in #feeds
  */
-function render(content)
-{
+function render(content) {
     document.getElementById('feeds').innerHTML = content;
 }
 
