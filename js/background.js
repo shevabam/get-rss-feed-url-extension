@@ -20,7 +20,7 @@ function updateIcon(tabId) {
 
                 nbFeeds = feeds.length;
 
-                console.log('nbFeeds (bg) : '+nbFeeds);
+                // console.log('nbFeeds (bg) : '+nbFeeds);
 
                 if (nbFeeds == 0) {
                     chrome.action.setIcon({path: {"48": "/img/icon_grey-48.png"}, tabId: tabId});
