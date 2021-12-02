@@ -1,10 +1,12 @@
 
+importScripts('config.js', 'functions.js');
+
 /*chrome.tabs.onActivated.addListener(function(activeInfo) {
     updateIcon(activeInfo.tabId);
 });*/
 
 //listen for current tab to be changed
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {    
     updateIcon(tabId);
 });
 
@@ -18,15 +20,15 @@ function updateIcon(tabId) {
 
                 nbFeeds = feeds.length;
 
-                // console.log('nbFeeds (bg) : '+nbFeeds);
+                console.log('nbFeeds (bg) : '+nbFeeds);
 
                 if (nbFeeds == 0) {
-                    chrome.browserAction.setIcon({path: {"48": "/img/icon_grey-48.png"}, tabId: tabId});
-                    chrome.browserAction.setBadgeText({text: "", tabId: tabId});
+                    chrome.action.setIcon({path: {"48": "/img/icon_grey-48.png"}, tabId: tabId});
+                    chrome.action.setBadgeText({text: "", tabId: tabId});
                 }
                 else {
-                    chrome.browserAction.setIcon({path: {"48": "/img/icon_default-48.png"}, tabId: tabId});
-                    chrome.browserAction.setBadgeText({text: nbFeeds.toString(), tabId: tabId});
+                    chrome.action.setIcon({path: {"48": "/img/icon_default-48.png"}, tabId: tabId});
+                    chrome.action.setBadgeText({text: nbFeeds.toString(), tabId: tabId});
                 }
 
             });

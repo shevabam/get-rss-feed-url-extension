@@ -5,35 +5,39 @@
 function getJSON(url, callback) {
 
     var token = _CONFIG_.api_token;
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.setRequestHeader('Authorization', 'Bearer ' + token);
-    xhr.responseType = 'json';
-
-    xhr.onload = function() {
-
-        var status = xhr.status;
-
-        if (status == 200) {
-            callback(xhr.response);
-        } else {
-            render('Unable to find feed');
-        }
-    }
-
-    xhr.send();
+    fetch(url, {
+           method: 'get', 
+           headers: new Headers({
+             'Content-Type': 'application/json',
+             'Authorization': 'Bearer ' + token
+           })
+         })
+        .then(function(response){
+            if (response.status == 200) {
+                response.json().then(function(data){
+                callback(data);
+            })
+            }
+            else {
+                render('Unable to find feed');
+            }
+        })
+        .catch(function(error){
+            render('Error: '+error.message);
+        });
 }
 
 /**
  * Fetch feeds
  */
 function getFeedsURLs(url, callback) {
-    if (typeof _CONFIG_ != 'undefined' && _CONFIG_.api_token != '') {
+    if (typeof _CONFIG_ != 'undefined' && _CONFIG_.api_token != '' && _CONFIG_.api_url != '') {
         if (url != 'undefined' && typeof url != 'undefined') {
             var params = {'from': 'extension_get-rss-feed-url'};
 
-            getJSON('https://get-rss-url-api.shevapps.fr/fetch.php?url='+url+'&params='+JSON.stringify(params), (response) =>  {
+            getJSON(_CONFIG_.api_url+'fetch.php?url='+url+'&params='+JSON.stringify(params), (response) =>  {
 
+                console.log(response);
                 var feeds_urls = [];
 
                 if (response != null) {
