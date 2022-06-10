@@ -31,34 +31,53 @@ function getJSON(url, callback) {
  * Fetch feeds
  */
 function getFeedsURLs(url, callback) {
+
     if (typeof _CONFIG_ != 'undefined' && _CONFIG_.api_token != '' && _CONFIG_.api_url != '') {
+
         if (url != 'undefined' && typeof url != 'undefined') {
+
             var params = {'from': 'extension_get-rss-feed-url'};
 
-            getJSON(_CONFIG_.api_url+'fetch.php?url='+url+'&params='+JSON.stringify(params), (response) =>  {
+            var feeds_founded = false;
 
-                console.log(response);
-                var feeds_urls = [];
+            _CONFIG_.api_url.forEach(api_url => {
+                
+                if (feeds_founded === false) {
 
-                if (response != null) {
+                    getJSON(api_url+'fetch.php?url='+url+'&params='+JSON.stringify(params), (response) =>  {
 
-                    for (var i = 0; i < response.datas.feeds.length; i++){
-                        var obj = response.datas.feeds[i];
+                        // console.log('API host : '+api_url);
+                        // console.log(response);
+                        var feeds_urls = [];
 
-                        var feed_url = obj['url'];
-                        var feed_title = obj['title'];
+                        if (response != null && response.datas.feeds.length > 0) {
 
-                        var feed = {
-                            url: feed_url,
-                            title: feed_title || feed_url
-                        };
+                            feeds_founded = true;
 
-                        feeds_urls.push(feed);
-                    }
+                            for (var i = 0; i < response.datas.feeds.length; i++){
+                                var obj = response.datas.feeds[i];
+
+                                var feed_url = obj['url'];
+                                var feed_title = obj['title'];
+
+                                var feed = {
+                                    url: feed_url,
+                                    title: feed_title || feed_url
+                                };
+
+                                feeds_urls.push(feed);
+                            }
+
+                            callback(feeds_urls);
+
+                        }
+
+                    });
+
                 }
 
-                callback(feeds_urls);
             });
+
         }
     }
     else {
