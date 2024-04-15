@@ -5,8 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         getFeedsURLs(url, function(feeds){
 
-            if (feeds.length > 0)
-            {
+            if (feeds.length > 0) {
                 var html = '<table id="feeds-list">';
                 for (i = 0; i < feeds.length; i++) {
                     html += '<tr>';
@@ -56,9 +55,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
                     copyToClipboard(textToCopy, {type: "success", title: '', message: "Feeds URLs copied in clipboard!"});
                 });
-            }
-            else
-            {
+                
+            } else {
                 render("No feed found");
             }
 
