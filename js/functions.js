@@ -24,8 +24,33 @@ function getHtmlSource(url, callback) {
     });
 }
 
+/**
+ * Extacts link tag with type attr and without rel="stylesheet" or rel="icon"
+ */
+function extractLinkTags(html) {
+    // let regex = /<link\s+[^>]*\btype=['"][^'"]+['"][^>]*>/gi;
+    let regex = /<link\s+(?![^>]*\brel=['"](stylesheet|icon|search)['"])[^>]*\btype=['"][^'"]+['"][^>]*>/gi;
 
-const SERVICES_TO_CHECK = [/*'Youtube',*/ 'Reddit', 'Kickstarter', 'Vimeo', 'GithubRepo', 'GithubUser', 'GitlabRepo', 'GitlabUser', 'MediumTag'];
+    let match = html.match(regex);
+
+    return match || [];
+}
+
+
+const SERVICES_TO_CHECK = [
+    // 'Youtube', 
+    'RedditRoot', 
+    'RedditSub', 
+    'RedditUser', 
+    'RedditPostComments',
+    'Kickstarter', 
+    'Vimeo', 
+    'GithubRepo', 
+    'GithubUser', 
+    'GitlabRepo', 
+    'GitlabUser', 
+    'MediumTag'
+];
 
 function checkIfUrlIsKnown(url) {
     let match = false;
@@ -61,7 +86,11 @@ function getFeedsURLs(url, callback) {
     } else {
         getHtmlSource(url, (response) =>  {
             if (response != '') {
-                document.getElementById('rss-feed-url_response').innerHTML = response;
+
+                let linkTags = extractLinkTags(response);
+                // console.log(linkTags);
+
+                document.getElementById('rss-feed-url_response').innerHTML = linkTags;
             }
 
             searchFeed(url, callback);
@@ -75,7 +104,7 @@ function getFeedsURLs(url, callback) {
 function searchFeed(url, callback) {
     if (document.getElementById('rss-feed-url_response').innerHTML != '') {
         var feeds_urls = [];
-        var types = [
+        const types = [
             'application/rss+xml',
             'application/atom+xml',
             'application/rdf+xml',
@@ -191,12 +220,91 @@ function getYoutubeRss(url) {
 
 
 /**
+ * Get RSS feed URL for the Reddit homepage
+ */
+function getRedditRootRss(url) {
+    let datas = { match: false, feeds: [] };
+
+
+    let regex = /^(http(s)?:\/\/)?((w){3}.)?reddit\.com(\/)?$/i;
+    let has_match = regex.test(url);
+
+    if (has_match) {
+        datas.match = true;
+
+        let feed_url = !url.endsWith('/') ? url+'/' : url;
+        feed_url += '.rss';
+
+        if (feed_url) {
+            datas.feeds.push({
+                url: feed_url,
+                title: feed_url
+            });
+        }
+    }
+
+    return datas;
+}
+
+/**
  * Get RSS feed URL of a subreddit
  */
-function getRedditRss(url) {
+function getRedditSubRss(url) {
     let datas = { match: false, feeds: [] };
 
     let regex = /^(http(s)?:\/\/)?((w){3}.)?reddit\.com\/r\/(.+)/i;
+    let has_match = regex.test(url);
+
+    if (has_match) {
+        datas.match = true;
+
+        let feed_url = url.endsWith('/') ? url.slice(0, -1) : url;
+        feed_url += '.rss';
+
+        if (feed_url) {
+            datas.feeds.push({
+                url: feed_url,
+                title: feed_url
+            });
+        }
+    }
+
+    return datas;
+}
+
+/**
+ * Get RSS feed URL of a reddit user
+ */
+function getRedditUserRss(url) {
+    let datas = { match: false, feeds: [] };
+
+    let regex = /^(http(s)?:\/\/)?((w){3}.)?reddit\.com\/user\/(.+)/i;
+    let has_match = regex.test(url);
+
+    if (has_match) {
+        datas.match = true;
+
+        let feed_url = url.endsWith('/') ? url.slice(0, -1) : url;
+        feed_url += '.rss';
+
+        if (feed_url) {
+            datas.feeds.push({
+                url: feed_url,
+                title: feed_url
+            });
+        }
+    }
+
+    return datas;
+}
+
+/**
+ * Get RSS feed URL for reddit post comments
+ */
+function getRedditPostCommentsRss(url) {
+    let datas = { match: false, feeds: [] };
+
+    let regex = /^(http(s)?:\/\/)?((w){3}.)?reddit\.com\/r\/(.+)\/comments\/(.+)\/(.+)/i;
     let has_match = regex.test(url);
 
     if (has_match) {
