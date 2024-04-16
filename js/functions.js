@@ -115,9 +115,10 @@ function getFeedsURLs(url, callback) {
 /**
  * Search RSS Feed in source code
  */
-function searchFeed(url, callback) {
+async function searchFeed(url, callback) {
+    var feeds_urls = [];
+
     if (document.getElementById('rss-feed-url_response').innerHTML != '') {
-        var feeds_urls = [];
         const types = [
             'application/rss+xml',
             'application/atom+xml',
@@ -172,19 +173,21 @@ function searchFeed(url, callback) {
                 feeds_urls.push(feed);
             }
         }
-
-        if (feeds_urls.length === 0) {
-
-            var test_feed = tryToGetFeedURL(url);
-
-            if (test_feed !== null) {
-                feeds_urls.push(test_feed);
-            }
-        }
-
-        callback(feeds_urls);
     
-    } else {
+    }
+
+    if (feeds_urls.length === 0) {
+
+        var test_feed = await tryToGetFeedURL(url);
+
+        if (test_feed !== null) {
+            feeds_urls.push(test_feed);
+        }
+    }
+
+    callback(feeds_urls);
+
+    if (feeds_urls.length === 0) {
         render('Unable to find feed');
     }
 }
@@ -515,11 +518,10 @@ function copyToClipboard(text, notification) {
 }
 
 
-
 /**
  * Attempt to find an RSS feed URL by providing a suffix
  */
-function tryToGetFeedURL(tabUrl) {
+async function tryToGetFeedURL(tabUrl) {
     var url_datas = parseUrl(tabUrl);
     var feed = null;
     var isFound = false;
@@ -530,19 +532,11 @@ function tryToGetFeedURL(tabUrl) {
         if (isFound === false) {
             var feed_url = url_datas.origin + tests[t];
 
-            var xhr = new XMLHttpRequest();
-            xhr.onreadystatechange = function(){
-                if (xhr.readyState == XMLHttpRequest.DONE) {
-                    return xhr.responseText;
-                }
-            };
-            xhr.open("GET", feed_url, false);
-            xhr.send();
+            let response = await fetch(feed_url, { method: 'get' });
 
-            var urlContent = xhr.responseText;
+            if (!response.ok || (response.status >= 200 && response.status < 400)) {
+                let urlContent = await response.text();
 
-            if (xhr.status >= 200 && xhr.status < 400 && urlContent != '')
-            {
                 var oParser = new DOMParser();
                 var oDOM = oParser.parseFromString(urlContent, "application/xml");
 
@@ -557,7 +551,6 @@ function tryToGetFeedURL(tabUrl) {
                         var getChannelTag = getFeedTag['0'];
                     }
 
-                    // if (getChannelTag.length > 0) {
                     if (getChannelTag !== false) {
                         isFound = true;
 
@@ -566,6 +559,8 @@ function tryToGetFeedURL(tabUrl) {
                             url: feed_url,
                             title: feed_url
                         };
+
+                        return feed;
                     }
                 }
             }
