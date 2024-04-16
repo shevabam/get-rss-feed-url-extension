@@ -18,9 +18,6 @@
         "default_popup": "popup.html",
         "default_title": "Click to view RSS feeds for this page"
     },
-    "background": {
-        "service_worker": "js/background.js"
-    },
     "icons": {
         "128" : "img/icon_128.png"
     }
