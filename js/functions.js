@@ -489,12 +489,14 @@ function getMediumTagRss(url) {
     if (has_match) {
         datas.match = true;
 
+        let tag = url.match(regex)[5];
+
         let feed_url = url.replace(/(\/tag)/, '/feed$1');
 
         if (feed_url) {
             datas.feeds.push({
                 url: feed_url,
-                title: feed_url
+                title: tag ?? feed_url
             });
         }
     }
