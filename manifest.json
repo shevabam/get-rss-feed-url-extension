@@ -6,7 +6,6 @@
     "author": "@shevabam",
     "homepage_url": "https://github.com/shevabam/get-rss-feed-url-extension",
     "permissions": [
-        "scripting",
         "activeTab",
         "notifications"
     ],

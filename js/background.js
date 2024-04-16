@@ -1,11 +1,11 @@
 
-chrome.tabs.onActivated.addListener(function(activeInfo) {
+/* chrome.tabs.onActivated.addListener(function(activeInfo) {
     updateIcon(activeInfo.tabId);
-});
+}); */
 
 //listen for current tab to be changed
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-    updateIcon(tabId);
+    // updateIcon(tabId);
 });
 
 function updateIcon(tabId) {

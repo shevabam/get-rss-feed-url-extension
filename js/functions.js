@@ -25,7 +25,7 @@ function getHtmlSource(url, callback) {
 }
 
 
-const SERVICES_TO_CHECK = [/*'Youtube',*/ 'Reddit', 'Kickstarter', 'Vimeo', 'GithubRepo', 'GithubUser', 'GitlabRepo', 'GitlabUser'];
+const SERVICES_TO_CHECK = [/*'Youtube',*/ 'Reddit', 'Kickstarter', 'Vimeo', 'GithubRepo', 'GithubUser', 'GitlabRepo', 'GitlabUser', 'MediumTag'];
 
 function checkIfUrlIsKnown(url) {
     let match = false;
@@ -345,6 +345,33 @@ function getGitlabUserRss(url) {
 }
 
 /**
+ * Get RSS feed URL of a medium tag page
+ */
+function getMediumTagRss(url) {
+    let datas = { match: false, feeds: [] };
+
+    let regex = /^(http(s)?:\/\/)?((w){3}.)?medium\.com\/tag\/(.+)/i;
+    let has_match = regex.test(url);
+
+    if (has_match) {
+        datas.match = true;
+
+        let feed_url = url.replace(/(\/tag)/, '/feed$1');
+
+        if (feed_url) {
+            datas.feeds.push({
+                url: feed_url,
+                title: feed_url
+            });
+        }
+    }
+
+    return datas;
+}
+
+
+
+/**
  * Prints message in #feeds
  */
 function render(content) {
@@ -355,14 +382,7 @@ function render(content) {
  * Copy to clipboard text with notification
  */
 function copyToClipboard(text, notification) {
-    const input = document.createElement('textarea');
-    input.style.position = 'fixed';
-    input.style.opacity = 0;
-    input.value = text;
-    document.body.appendChild(input);
-    input.select();
-    document.execCommand('Copy');
-    document.body.removeChild(input);
+    navigator.clipboard.writeText(text);
 
     chrome.notifications.create('get-rss-feed-url-copy', {
         type: "basic",
