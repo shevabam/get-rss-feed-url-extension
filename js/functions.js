@@ -25,11 +25,19 @@ function getHtmlSource(url, callback) {
 }
 
 /**
- * Extacts link tag with type attr and without rel="stylesheet" or rel="icon"
+ * Extacts link tag with some filters
  */
 function extractLinkTags(html) {
     // let regex = /<link\s+[^>]*\btype=['"][^'"]+['"][^>]*>/gi;
-    let regex = /<link\s+(?![^>]*\brel=['"](stylesheet|icon|search)['"])[^>]*\btype=['"][^'"]+['"][^>]*>/gi;
+
+    // Excludes link tags with:
+    //   rel="stylesheet"
+    //   rel="icon"
+    //   rel="search"
+    //   type="text/javascript"
+    //   type="image/"
+    //   type="font/"
+    let regex = /<link\s+(?![^>]*\b(?:rel=['"](stylesheet|icon|search)['"]|type=['"](text\/javascript|image\/(.*)|font\/(.*))['"]))[^>]*\btype=['"][^'"]+['"][^>]*>/gi;
 
     let match = html.match(regex);
 
