@@ -88,10 +88,12 @@ body.rss-feed-url {
     text-align: center;
 }
 .rss-feed-url footer a {
-    color: #7C7C7C;
+    color: #212121;
     font-size: 11px;
 }
-
+.rss-feed-url footer a:hover {
+    text-decoration: none;
+}   
 .rss-feed-url #rss-feed-url_response {
     display: none;
 }

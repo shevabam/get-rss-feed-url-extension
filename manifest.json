@@ -20,5 +20,12 @@
     },
     "icons": {
         "128" : "img/icon_128.png"
+    },
+    "commands": {
+        "_execute_action": {
+            "suggested_key": {
+                "default": "Alt+Shift+R"
+            }
+        }
     }
 }
