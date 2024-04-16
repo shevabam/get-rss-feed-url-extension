@@ -79,6 +79,20 @@ function checkIfUrlIsKnown(url) {
  * Get RSS feeds URLs
  */
 function getFeedsURLs(url, callback) {
+
+    switch (parseUrl(url).protocol) {
+        case "chrome:":
+        case "chrome-extension:":
+        case "about:":
+        case "vivaldi:":
+        case "edge:":
+        case "chrome-devtools:":
+        case "devtools:":
+            render('Unable to find feed');
+            return false;
+    }
+
+
     var getFeedUrl = checkIfUrlIsKnown(url);
 
     if (false !== getFeedUrl && getFeedUrl.length > 0) {

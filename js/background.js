@@ -1,7 +1,10 @@
 
-/* chrome.tabs.onActivated.addListener(function(activeInfo) {
-    updateIcon(activeInfo.tabId);
-}); */
+importScripts('utilities.js');
+importScripts('functions.js');
+
+chrome.tabs.onActivated.addListener(function(activeInfo) {
+    // updateIcon(activeInfo.tabId);
+});
 
 //listen for current tab to be changed
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
@@ -14,7 +17,7 @@ function updateIcon(tabId) {
         chrome.tabs.get(tabId, function(tab){
             var url = tab.url;
 
-            /*getFeedsURLs(url, function(feeds){
+            getFeedsURLs(url, function(feeds){
 
                 nbFeeds = feeds.length;
 
@@ -29,7 +32,7 @@ function updateIcon(tabId) {
                     chrome.browserAction.setBadgeText({text: nbFeeds.toString(), tabId: tabId});
                 }
 
-            });*/
+            });
         });
     });
 };

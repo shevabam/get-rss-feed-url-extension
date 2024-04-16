@@ -4,11 +4,7 @@
  * Parse an URL to return host, protocol, ...
  */
 function parseUrl(string) {
-    const a = document.createElement('a'); 
-    a.setAttribute('href', string);
-    const {host, hostname, pathname, port, protocol, search, hash} = a;
-    const origin = `${protocol}//${hostname}${port.length ? `:${port}`:''}`;
-    return {origin, host, hostname, pathname, port, protocol, search, hash}
+    return new URL(string);
 }
 
 /**
