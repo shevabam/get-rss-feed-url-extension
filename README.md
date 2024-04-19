@@ -74,11 +74,11 @@ Installez l'extension à partir du [**Chrome Web Store**](https://chrome.google.
 
 Après avoir installé l'extension, affichez-la dans votre barre :
 
-![](docs/ext1.png)
+![](docs/get-rss-feed-url-extension_2.png)
 
 Rendez-vous ensuite sur un site et cliquez sur le bouton de l'extension pour afficher les différents flux RSS trouvés :
 
-![](docs/ext2.png)
+![](docs/get-rss-feed-url-extension_3.png)
 
 Vous pouvez aussi ouvrir cette popup à partir du raccourci clavier : `Alt+Shift+R`. Vous pouvez le [modifier dans vos paramètres Chrome](chrome://extensions/shortcuts) (Extensions > Raccourcis clavier).
 
