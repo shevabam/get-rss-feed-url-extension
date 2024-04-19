@@ -12,7 +12,23 @@ Indeed, websites do not always provide a direct link to the RSS feed. It is then
 
 This extension makes it possible to avoid this manipulation because the URLs of the RSS feeds of the website are displayed directly and can be copied with one click!
 
-In addition, this extension allows you to easily retrieve the RSS feed from a Youtube channel / user or from a subreddit!
+In addition, this extension allows you to easily retrieve the RSS feed from several sites that do not offer one natively:
+
+* **Reddit:** the extension can retrieve RSS feeds from your Reddit homepage but also from a Reddit sub, a profile or post comments
+* **Kickstarter:** the RSS feed of a Kickstarter project is retrieved
+* **Vimeo:** RSS feed from a Vimeo channel
+* **Github:** the extension retrieves RSS feeds from a Github repository *(releases, commits, tags)* and from a Github user *(activity)*
+* **Gitlab:** same as Github
+* **Medium:** retrieves the RSS feed of a page with a keyword (tag)
+
+![](docs/get-rss-feed-url-extension_github-repo.png)  
+*Github repository*
+
+![](docs/get-rss-feed-url-extension_medium-tag.png)  
+*Medium tag page*
+
+![](docs/get-rss-feed-url-extension_reddit-sub.png)  
+*Subreddit*
 
 
 # Install
@@ -62,7 +78,23 @@ En effet, les sites Internet ne mettent pas toujours à disposition un lien dire
 
 Cette extension permet d'éviter cette manipulation car les URL des flux RSS du site Internet sont affichés directement et peuvent être copiés d'un simple clic !
 
-De plus, cette extension vous permet de récupérer facilement le flux RSS d'une chaîne ou utilisateur Youtube ou d'un subreddit !
+De plus, cette extension vous permet de récupérer facilement le flux RSS de plusieurs sites qui n'en proposent pas nativement :
+
+* **Reddit :** l'extension arrive à récupérer les flux RSS de votre homepage Reddit mais aussi d'un sub Reddit, d'un profil ou des commentaires d'un post
+* **Kickstarter :** le flux RSS d'un projet Kickstarter est récupéré
+* **Vimeo :** flux RSS d'une chaîne Vimeo
+* **Github :** l'extension récupère les flux RSS d'un dépôt Github *(releases, commits, tags)* et d'un utilisateur Github *(activité)*
+* **Gitlab :** idem que Github
+* **Medium :** récupère le flux RSS d'une page d'un mot-clé (tag)
+
+![](docs/get-rss-feed-url-extension_github-repo.png)  
+*Github repository*
+
+![](docs/get-rss-feed-url-extension_medium-tag.png)  
+*Medium tag page*
+
+![](docs/get-rss-feed-url-extension_reddit-sub.png)  
+*Subreddit*
 
 
 # Installation
