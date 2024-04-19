@@ -1,5 +1,5 @@
 <p align="center">
-<a href="https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn?hl=fr"><img src="screenshot.png"/></a
+<a href="https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn?hl=fr"><img src="docs/get-rss-feed-url-extension_1.png"/></a>
 </p>
 
 
@@ -20,6 +20,22 @@ In addition, this extension allows you to easily retrieve the RSS feed from a Yo
 Install this extension from [**Chrome Web Store**](https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn) or [**Microsfot Edge Store**](https://microsoftedge.microsoft.com/addons/detail/get-rss-feed-url/pgbelohmepchkohpdldadopkblkgbjom).
 
 
+# Usage
+
+After installing the extension, display it in your browser:
+
+![](docs/get-rss-feed-url-extension_2.png)
+
+Then go to a site and click on the extension button to display the different RSS feeds found:
+
+![](docs/get-rss-feed-url-extension_3.png)
+
+You can also open this popup from the keyboard shortcut: `Alt+Shift+R`. You can [edit it in your Chrome settings](chrome://extensions/shortcuts) (Extensions > Keyboard shortcuts).
+
+You can copy the URL of an RSS feed by clicking on the "Copy URL" button.
+If you want to copy the URLs of all RSS feeds found, click "Copy all URLs".
+
+
 # Feedback
 
 If you encounter a problem using Get RSS Feed URL extension, or would like to request an enhancement, feel free to create an issue or say hello on [Twitter/X](https://twitter.com/shevabam)!
@@ -34,7 +50,6 @@ The extension does not store any data on the browser or on the computer.
 
 
 ---
-
 
 
 
@@ -53,6 +68,22 @@ De plus, cette extension vous permet de récupérer facilement le flux RSS d'une
 # Installation
 
 Installez l'extension à partir du [**Chrome Web Store**](https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn?hl=fr) ou sur [**Microsfot Edge Store**](https://microsoftedge.microsoft.com/addons/detail/get-rss-feed-url/pgbelohmepchkohpdldadopkblkgbjom).
+
+
+# Utilisation
+
+Après avoir installé l'extension, affichez-la dans votre barre :
+
+![](docs/ext1.png)
+
+Rendez-vous ensuite sur un site et cliquez sur le bouton de l'extension pour afficher les différents flux RSS trouvés :
+
+![](docs/ext2.png)
+
+Vous pouvez aussi ouvrir cette popup à partir du raccourci clavier : `Alt+Shift+R`. Vous pouvez le [modifier dans vos paramètres Chrome](chrome://extensions/shortcuts) (Extensions > Raccourcis clavier).
+
+Vous pouvez copier l'URL d'un flux RSS en cliquant sur le bouton "Copy URL".  
+Si vous souhaitez copier les URL de tous les flux RSS trouvés, cliquez sur "Copy all URLs".
 
 
 # Feedback
