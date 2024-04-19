@@ -25,6 +25,12 @@ Install this extension from [**Chrome Web Store**](https://chrome.google.com/web
 If you encounter a problem using Get RSS Feed URL extension, or would like to request an enhancement, feel free to create an issue or say hello on [Twitter/X](https://twitter.com/shevabam)!
 
 
+# Privacy Policy
+
+The extension does not collect any user information or other information. Some data can be requested using the XHR API (only GET requests) in order to provide more context to retrieve a website's RSS feed.
+
+The extension does not store any data on the browser or on the computer.
+
 
 
 ---
@@ -52,3 +58,11 @@ Installez l'extension à partir du [**Chrome Web Store**](https://chrome.google.
 # Feedback
 
 Si vous rencontrez un problème avec l'extension Get RSS Feed URL, ou que vous souhaitez une évolution, n'hésitez pas à créer une *issue* ou à me contacter sur [Twitter/X](https://twitter.com/shevabam) !
+
+
+# Politique de confidentialité
+
+L'extension ne collecte aucune information sur l'utilisateur ou d'autres informations. Certaines données peuvent être demandées à l'aide de l'API XHR (uniquement les requêtes GET) afin de fournir plus de contexte pour récupérer le flux RSS d'un site Internet.
+
+L'extension ne stocke aucune donnée sur le navigateur ou sur l'ordinateur. 
+
