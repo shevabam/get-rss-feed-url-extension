@@ -1,13 +1,14 @@
 
-importScripts('config.js', 'functions.js');
+importScripts('utilities.js');
+importScripts('functions.js');
 
-/*chrome.tabs.onActivated.addListener(function(activeInfo) {
-    updateIcon(activeInfo.tabId);
-});*/
+chrome.tabs.onActivated.addListener(function(activeInfo) {
+    // updateIcon(activeInfo.tabId);
+});
 
 //listen for current tab to be changed
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {    
-    updateIcon(tabId);
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+    // updateIcon(tabId);
 });
 
 function updateIcon(tabId) {

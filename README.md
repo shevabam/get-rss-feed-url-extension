@@ -17,12 +17,12 @@ In addition, this extension allows you to easily retrieve the RSS feed from a Yo
 
 # Install
 
-Install this extension from [**Chrome Web Store**](https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn).
+Install this extension from [**Chrome Web Store**](https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn) or [**Microsfot Edge Store**](https://microsoftedge.microsoft.com/addons/detail/get-rss-feed-url/pgbelohmepchkohpdldadopkblkgbjom).
 
 
 # Feedback
 
-If you encounter a problem using get-rss-feed-url-extension, or would like to request an enhancement, feel free to create an issue or say hello on [Twitter](https://twitter.com/shevabam)!
+If you encounter a problem using Get RSS Feed URL extension, or would like to request an enhancement, feel free to create an issue or say hello on [Twitter/X](https://twitter.com/shevabam)!
 
 
 # Privacy Policy
@@ -52,12 +52,12 @@ De plus, cette extension vous permet de récupérer facilement le flux RSS d'une
 
 # Installation
 
-Installez l'extension à partir du [**Chrome Web Store**](https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn?hl=fr).
+Installez l'extension à partir du [**Chrome Web Store**](https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn?hl=fr) ou sur [**Microsfot Edge Store**](https://microsoftedge.microsoft.com/addons/detail/get-rss-feed-url/pgbelohmepchkohpdldadopkblkgbjom).
 
 
 # Feedback
 
-Si vous rencontrez un problème avec l'extension, ou que vous souhaitez une évolution, n'hésitez pas à créer une *issue* ou à me contacter sur [Twitter](https://twitter.com/shevabam) !
+Si vous rencontrez un problème avec l'extension Get RSS Feed URL, ou que vous souhaitez une évolution, n'hésitez pas à créer une *issue* ou à me contacter sur [Twitter/X](https://twitter.com/shevabam) !
 
 
 # Politique de confidentialité
@@ -65,3 +65,4 @@ Si vous rencontrez un problème avec l'extension, ou que vous souhaitez une évo
 L'extension ne collecte aucune information sur l'utilisateur ou d'autres informations. Certaines données peuvent être demandées à l'aide de l'API XHR (uniquement les requêtes GET) afin de fournir plus de contexte pour récupérer le flux RSS d'un site Internet.
 
 L'extension ne stocke aucune donnée sur le navigateur ou sur l'ordinateur. 
+

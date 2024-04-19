@@ -72,6 +72,7 @@ body.rss-feed-url {
 .rss-feed-url header {
     background-color: #ff9c00;
     padding: 10px;
+    border-radius: 5px;
 }
 .rss-feed-url header h1 {
     font-size: 18px;
@@ -84,18 +85,25 @@ body.rss-feed-url {
 
 .rss-feed-url footer {
     background-color: #f0f0f0;
-    padding: 8px;
     text-align: center;
+    font-size: .7rem;
+    color: #888;
+    padding: .6rem;
+    border-radius: 5px;
 }
 .rss-feed-url footer a {
-    color: #7C7C7C;
-    font-size: 11px;
+    color: #888;
 }
+.rss-feed-url footer a:hover {
+    text-decoration: none;
+}
+span.rss-feed-url__bullet {
+    padding: 0 1rem;
+  }
 
 .rss-feed-url #rss-feed-url_response {
     display: none;
 }
-
 
 
 @keyframes loader-anim { 
