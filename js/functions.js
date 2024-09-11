@@ -1,14 +1,11 @@
 
-
-
-
 /**
  * Get HTML source code froms URL
  */
 function getHtmlSource(url, callback) {
     fetch(url, {
         method: 'get'
-      })
+    })
     .then(function(response){
         if (response.status == 200) {
             response.text().then(function(data){
@@ -100,7 +97,6 @@ function getFeedsURLs(url, callback) {
             return false;
     }
 
-
     var getFeedUrl = checkIfUrlIsKnown(url);
 
     if (false !== getFeedUrl && getFeedUrl.length > 0) {
@@ -108,7 +104,6 @@ function getFeedsURLs(url, callback) {
     } else {
         getHtmlSource(url, (response) =>  {
             if (response != '') {
-
                 let linkTags = extractLinkTags(response);
                 // console.log(linkTags);
 
@@ -413,6 +408,7 @@ function getGithubRepoRss(url) {
     if (matches) {
         datas.match = true;
         let repoUrl = matches[0].replace(/\/$/, ''); // Remove trailing slash
+        repoUrl = repoUrl.replace(/\/(releases|commits|tags)$/, '');
 
         datas.feeds.push({ url: repoUrl + '/releases.atom', title: 'Repo releases' });
         datas.feeds.push({ url: repoUrl + '/commits.atom', title: 'Repo commits' });
