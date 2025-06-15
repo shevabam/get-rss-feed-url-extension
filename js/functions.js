@@ -57,6 +57,7 @@ const SERVICES_TO_CHECK = [
     'GitlabUser', 
     'MediumTag',
     'Itchio',
+    'MirrorXyz',
 ];
 
 function checkIfUrlIsKnown(url) {
@@ -544,7 +545,6 @@ function getItchioRss(url) {
     let regex = /^(http(s)?:\/\/)?((w){3}.)?itch\.io\/(.+)/i;
     let matches = url.match(regex);
     let has_match = regex.test(url);
-    console.log(matches);
 
     if (has_match) {
         datas.match = true;
@@ -554,6 +554,34 @@ function getItchioRss(url) {
         datas.feeds.push({
             url: feed_url,
             title: matches[5] ?? feed_url
+        });
+    }
+
+    return datas;
+}
+
+/**
+ * Get RSS feed URL of a mirro.xyz
+ */
+function getMirrorXyzRss(url) {
+    let datas = { match: false, feeds: [] };
+
+    let regex = /^https?:\/\/([a-zA-Z0-9-]+)\.mirror\.xyz\/[a-zA-Z0-9_-]+$/;
+    let matches = url.match(regex);
+    let has_match = regex.test(url);
+
+    if (has_match) {
+        datas.match = true;
+
+        const urlObj = new URL(url);
+        const baseUrl = urlObj.origin;
+        const subdomain = matches[1];
+
+        let feed_url = baseUrl + '/feed/atom';
+
+        datas.feeds.push({
+            url: feed_url,
+            title: subdomain
         });
     }
 
