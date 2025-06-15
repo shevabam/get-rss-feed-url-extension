@@ -21,6 +21,7 @@ In addition, this extension allows you to easily retrieve the RSS feed from seve
 * **Github:** the extension retrieves RSS feeds from a Github repository *(releases, commits, tags)* and from a Github user *(activity)*
 * **Gitlab:** same as Github
 * **Medium:** retrieves the RSS feed of a page with a keyword (tag)
+* **Itch.io:** get RSS feeds from Itch.io categories
 
 ![](docs/get-rss-feed-url-extension_github-repo.png)  
 *Github repository*
@@ -88,6 +89,7 @@ De plus, cette extension vous permet de récupérer facilement le flux RSS de pl
 * **Github :** l'extension récupère les flux RSS d'un dépôt Github *(releases, commits, tags)* et d'un utilisateur Github *(activité)*
 * **Gitlab :** idem que Github
 * **Medium :** récupère le flux RSS d'une page d'un mot-clé (tag)
+* **Itch.io:** retourne les flux RSS des catégories Itch.io
 
 ![](docs/get-rss-feed-url-extension_github-repo.png)  
 *Github repository*

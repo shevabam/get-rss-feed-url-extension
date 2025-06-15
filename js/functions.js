@@ -55,7 +55,8 @@ const SERVICES_TO_CHECK = [
     'GithubUser', 
     'GitlabRepo', 
     'GitlabUser', 
-    'MediumTag'
+    'MediumTag',
+    'Itchio',
 ];
 
 function checkIfUrlIsKnown(url) {
@@ -435,15 +436,18 @@ function getGithubRepoRss(url) {
 
     let regex = /^(http(s)?:\/\/)?((w){3}.)?github\.com\/([a-zA-Z0-9](.+))\/([a-zA-Z0-9](.+))$/i;
     let matches = url.match(regex);
+    console.log(matches);
 
     if (matches) {
         datas.match = true;
         let repoUrl = matches[0].replace(/\/$/, ''); // Remove trailing slash
-        repoUrl = repoUrl.replace(/\/(releases|commits|tags)$/, '');
 
-        datas.feeds.push({ url: repoUrl + '/releases.atom', title: 'Repo releases' });
-        datas.feeds.push({ url: repoUrl + '/commits.atom', title: 'Repo commits' });
-        datas.feeds.push({ url: repoUrl + '/tags.atom', title: 'Repo tags' });
+        const url = new URL(repoUrl);
+        baseRepoUrl = url.origin + '/' + url.pathname.split('/').slice(1, 3).join('/');
+
+        datas.feeds.push({ url: baseRepoUrl + '/releases.atom', title: 'Repo releases' });
+        datas.feeds.push({ url: baseRepoUrl + '/commits.atom', title: 'Repo commits' });
+        datas.feeds.push({ url: baseRepoUrl + '/tags.atom', title: 'Repo tags' });
     }
 
     return datas;
@@ -531,6 +535,31 @@ function getMediumTagRss(url) {
     return datas;
 }
 
+/**
+ * Get RSS feed URL of a itch.io page
+ */
+function getItchioRss(url) {
+    let datas = { match: false, feeds: [] };
+
+    let regex = /^(http(s)?:\/\/)?((w){3}.)?itch\.io\/(.+)/i;
+    let matches = url.match(regex);
+    let has_match = regex.test(url);
+    console.log(matches);
+
+    if (has_match) {
+        datas.match = true;
+
+        let feed_url = url + '.xml';
+
+        datas.feeds.push({
+            url: feed_url,
+            title: matches[5] ?? feed_url
+        });
+    }
+
+    return datas;
+}
+
 
 
 /**
@@ -559,26 +588,42 @@ function copyToClipboard(text, notification) {
  * Attempt to find an RSS feed URL by providing a suffix
  */
 async function tryToGetFeedURL(tabUrl) {
-    var url_datas = parseUrl(tabUrl);
-    var feed = null;
-    var isFound = false;
+    let url_datas = parseUrl(tabUrl);
+    let feed = null;
+    let isFound = false;
 
-    var tests = ['/feed', '/rss', '/rss.xml', '/feed.xml', '/rss/news.xml', '/articles/feed', '/rss/index.html'];
+    let tests = [
+        '/feed', 
+        '/feed/', 
+        '/rss', 
+        '/rss/', 
+        '/rss.xml', 
+        '/feed.xml', 
+        '/rss/news.xml', 
+        '/articles/feed', 
+        '/rss/index.html',
+        '/blog/feed/',
+        '/blog/rss/',
+        '/blog/rss.xml',
+        '/feed/posts/default',
+        '/?format=feed',
+        '/rss/featured'
+    ];
 
     for (var t = 0; t < tests.length; t++) {
         if (isFound === false) {
-            var feed_url = url_datas.origin + tests[t];
+            let feed_url = url_datas.origin + tests[t];
 
             let response = await fetch(feed_url, { method: 'get' });
 
             if (!response.ok || (response.status >= 200 && response.status < 400)) {
                 let urlContent = await response.text();
 
-                var oParser = new DOMParser();
-                var oDOM = oParser.parseFromString(urlContent, "application/xml");
+                let oParser = new DOMParser();
+                let oDOM = oParser.parseFromString(urlContent, "application/xml");
 
-                var getRssTag = oDOM.getElementsByTagName('rss');
-                var getFeedTag = oDOM.getElementsByTagName('feed');
+                let getRssTag = oDOM.getElementsByTagName('rss');
+                let getFeedTag = oDOM.getElementsByTagName('feed');
 
                 if (getRssTag.length > 0 || getFeedTag.length > 0) {
 
