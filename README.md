@@ -14,6 +14,7 @@ This extension makes it possible to avoid this manipulation because the URLs of 
 
 In addition, this extension allows you to easily retrieve the RSS feed from several sites that do not offer one natively:
 
+* **Youtube:** RSS feeds for channel, user and playlist can be retrieve with this extension
 * **Reddit:** the extension can retrieve RSS feeds from your Reddit homepage but also from a Reddit sub, a profile or post comments
 * **Kickstarter:** the RSS feed of a Kickstarter project is retrieved
 * **Vimeo:** RSS feed from a Vimeo channel
@@ -80,6 +81,7 @@ Cette extension permet d'éviter cette manipulation car les URL des flux RSS du 
 
 De plus, cette extension vous permet de récupérer facilement le flux RSS de plusieurs sites qui n'en proposent pas nativement :
 
+* **Youtube :** les flux RSS d'une chaîne, d'un utilisateur et d'une playlist peuvent être récupérés avec cette extension
 * **Reddit :** l'extension arrive à récupérer les flux RSS de votre homepage Reddit mais aussi d'un sub Reddit, d'un profil ou des commentaires d'un post
 * **Kickstarter :** le flux RSS d'un projet Kickstarter est récupéré
 * **Vimeo :** flux RSS d'une chaîne Vimeo

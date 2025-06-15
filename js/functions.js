@@ -44,6 +44,7 @@ function extractLinkTags(html) {
 
 const SERVICES_TO_CHECK = [
     // 'Youtube', 
+    'YoutubePlaylist',
     'RedditRoot', 
     'RedditSub', 
     'RedditUser', 
@@ -226,6 +227,36 @@ function getYoutubeRss(url) {
             query = 'user=' + user_id;
             title = user_id;
         }
+
+        if (query != '') {
+            datas.feeds.push({
+                url: 'https://www.youtube.com/feeds/videos.xml?' + query,
+                title: title
+            });
+        }
+    }
+
+    return datas;
+}
+
+
+/**
+ * Get RSS feed URL of Youtube playist
+ */
+function getYoutubePlaylistRss(url) {
+    let datas = { match: false, feeds: [] };
+
+    let regex = /^(http(s)?:\/\/)?((w){3}.)?youtu(be|.be)?(\.com)?\/playlist\?list=(.+)/i;
+    let has_match = regex.test(url);
+
+    if (has_match) {
+        datas.match = true;
+        let query = '';
+        let title = '';
+
+        const playlist_id = new URL(url).searchParams.get('list');
+        query = 'playlist_id=' + playlist_id;
+        title = 'RSS Playlist';    
 
         if (query != '') {
             datas.feeds.push({
