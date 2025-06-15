@@ -437,7 +437,6 @@ function getGithubRepoRss(url) {
 
     let regex = /^(http(s)?:\/\/)?((w){3}.)?github\.com\/([a-zA-Z0-9](.+))\/([a-zA-Z0-9](.+))$/i;
     let matches = url.match(regex);
-    console.log(matches);
 
     if (matches) {
         datas.match = true;
