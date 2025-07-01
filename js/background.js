@@ -10,7 +10,7 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
     // updateIcon(tabId);
 });
 
-async function updateIcon(tabId) {
+/* async function updateIcon(tabId) {
     chrome.tabs.get(tabId, function(change){
 
         chrome.tabs.get(tabId, function(tab){
@@ -34,7 +34,7 @@ async function updateIcon(tabId) {
             });
         });
     });
-};
+}; */
 
 async function removeAllContextMenus() {
     return new Promise((resolve) => {
@@ -87,6 +87,13 @@ async function createActionContextMenus() {
         parentId: "support",
         contexts: ["action"]
     });
+
+    chrome.contextMenus.create({
+        id: "projects",
+        title: "🧪 More projects",
+        parentId: "support",
+        contexts: ["action"]
+    });
 }
 
 chrome.runtime.onInstalled.addListener(async () => {
@@ -111,5 +118,8 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
         case "review":
             chrome.tabs.create({ url: `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews` });
             break;
+        case "projects":
+        chrome.tabs.create({ url: `https://shevabam.fr` });
+        break;
     }
 });
