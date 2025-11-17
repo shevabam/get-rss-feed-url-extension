@@ -630,6 +630,7 @@ async function tryToGetFeedURL(tabUrl) {
         '/articles/feed', 
         '/rss/index.html',
         '/blog/feed/',
+        '/blog/feed.xml',
         '/blog/rss/',
         '/blog/rss.xml',
         '/feed/posts/default',
