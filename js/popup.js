@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (feeds.length > 0) {
                 var html = '<table id="feeds-list">';
-                for (i = 0; i < feeds.length; i++) {
+                for (let i = 0; i < feeds.length; i++) {
                     html += '<tr>';
                     html +=   '<td class="feed-title">';
                     html +=     '<a class="link" href="'+feeds[i].url+'" title="Open feed URL" data-tabtitle="'+tab.title+'" target="_blank">'+feeds[i].title+'</a>';
@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
                     var text = '';
                     for (var j = 0; j < feeds_list.length; j++) {
-                        text += feeds_list[j]+"\n";
+                        text += feeds_list[j].getAttribute('href') + "\n";
                     }
                     var textToCopy = text.substring(0, text.length - 1);
     

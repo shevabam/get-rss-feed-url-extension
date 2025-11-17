@@ -100,7 +100,7 @@ function getFeedsURLs(url, callback) {
             return false;
     }
 
-    var getFeedUrl = checkIfUrlIsKnown(url);
+    let getFeedUrl = checkIfUrlIsKnown(url);
 
     if (false !== getFeedUrl && getFeedUrl.length > 0) {
         callback(getFeedUrl);
@@ -122,7 +122,7 @@ function getFeedsURLs(url, callback) {
  * Search RSS Feed in source code
  */
 async function searchFeed(url, callback) {
-    var feeds_urls = [];
+    let feeds_urls = [];
 
     if (document.getElementById('rss-feed-url_response').innerHTML != '') {
         const types = [
@@ -140,15 +140,15 @@ async function searchFeed(url, callback) {
             'text/rdf'
         ];
 
-        var links = document.getElementById('rss-feed-url_response').querySelectorAll("#rss-feed-url_response link[type]");
+        let links = document.getElementById('rss-feed-url_response').querySelectorAll("#rss-feed-url_response link[type]");
 
         document.getElementById('rss-feed-url_response').innerHTML = '';
 
-        for (var i = 0; i < links.length; i++) {
+        for (let i = 0; i < links.length; i++) {
 
             if (links[i].hasAttribute('type') && types.indexOf(links[i].getAttribute('type')) !== -1) {
 
-                var feed_url = links[i].getAttribute('href');
+                let feed_url = links[i].getAttribute('href');
 
                 // If feed's url starts with "//"
                 if (feed_url.startsWith('//')) {
@@ -170,7 +170,7 @@ async function searchFeed(url, callback) {
                     feed_url = url + "/" + feed_url.replace(/^\//g, '');
                 }
 
-                var feed = {
+                let feed = {
                     type: links[i].getAttribute('type'),
                     url: feed_url,
                     title: links[i].getAttribute('title') || feed_url
@@ -184,7 +184,7 @@ async function searchFeed(url, callback) {
 
     if (feeds_urls.length === 0) {
 
-        var test_feed = await tryToGetFeedURL(url);
+        let test_feed = await tryToGetFeedURL(url);
 
         if (test_feed !== null) {
             feeds_urls.push(test_feed);
@@ -638,13 +638,13 @@ async function tryToGetFeedURL(tabUrl) {
         '/rss/featured'
     ];
 
-    for (var t = 0; t < tests.length; t++) {
+    for (let t = 0; t < tests.length; t++) {
         if (isFound === false) {
             let feed_url = url_datas.origin + tests[t];
 
             let response = await fetch(feed_url, { method: 'get' });
 
-            if (!response.ok || (response.status >= 200 && response.status < 400)) {
+            if (response.ok && response.status >= 200 && response.status < 300) {
                 let urlContent = await response.text();
 
                 let oParser = new DOMParser();
