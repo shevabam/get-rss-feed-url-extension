@@ -1,3 +1,5 @@
+[![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/shevabam/get-rss-feed-url-extension)
+
 <p align="center">
 <a href="https://chrome.google.com/webstore/detail/get-rss-feed-url/kfghpdldaipanmkhfpdcjglncmilendn?hl=fr"><img src="docs/get-rss-feed-url-extension_1.png"/></a>
 </p>
