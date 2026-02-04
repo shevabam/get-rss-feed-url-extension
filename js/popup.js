@@ -1,12 +1,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
-        var tab = tabs[0];
-        var url = tab.url;
+        const tab = tabs[0];
+        const url = tab.url;
 
         getFeedsURLs(url, function(feeds){
 
+            // Send feed count to background to update badge
+            chrome.runtime.sendMessage({
+                action: "updateBadge",
+                tabId: tab.id,
+                feedCount: feeds.length
+            });
+
             if (feeds.length > 0) {
-                var html = '<table id="feeds-list">';
+                let html = '<table id="feeds-list">';
                 for (let i = 0; i < feeds.length; i++) {
                     html += '<tr>';
                     html +=   '<td class="feed-title">';
@@ -28,13 +35,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
                 // Copy to clipboard feed URL
-                var copyButtons = document.getElementsByClassName('copyLink');
-    
+                const copyButtons = document.getElementsByClassName('copyLink');
+
                 for (let i = 0; i < copyButtons.length; i++) {
                     copyButtons[i].addEventListener("click", function() {
-                        var feed = this.parentNode.parentNode.querySelector('a.link');
-                        var url = feed.getAttribute('href');
-                        var tabTitle = feed.getAttribute('data-tabtitle');
+                        const feed = this.parentNode.parentNode.querySelector('a.link');
+                        const url = feed.getAttribute('href');
+                        const tabTitle = feed.getAttribute('data-tabtitle');
     
                         copyToClipboard(url, {type: "success", title: tabTitle, message: "Feed URL copied in clipboard!"});
                     });
@@ -42,16 +49,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
                 
                 // Copy to clipboard all feeds URLs
-                var copyButtonAll = document.getElementById('copyAllLinks');
-    
+                const copyButtonAll = document.getElementById('copyAllLinks');
+
                 copyButtonAll.addEventListener("click", function() {
-                    var feeds_list = document.getElementById('feeds-list').querySelectorAll('.feed-title a.link');
-    
-                    var text = '';
-                    for (var j = 0; j < feeds_list.length; j++) {
+                    const feeds_list = document.getElementById('feeds-list').querySelectorAll('.feed-title a.link');
+
+                    let text = '';
+                    for (let j = 0; j < feeds_list.length; j++) {
                         text += feeds_list[j].getAttribute('href') + "\n";
                     }
-                    var textToCopy = text.substring(0, text.length - 1);
+                    const textToCopy = text.substring(0, text.length - 1);
     
                     copyToClipboard(textToCopy, {type: "success", title: '', message: "Feeds URLs copied in clipboard!"});
                 });
