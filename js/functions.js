@@ -1,24 +1,74 @@
 
+const IGNORED_PROTOCOLS = [
+    "chrome:",
+    "chrome-extension:",
+    "about:",
+    "vivaldi:",
+    "edge:",
+    "chrome-devtools:",
+    "devtools:"
+];
+
+const FEED_TYPES = [
+    'application/rss+xml',
+    'application/atom+xml',
+    'application/rdf+xml',
+    'application/rss',
+    'application/atom',
+    'application/rdf',
+    'text/rss+xml',
+    'text/atom+xml',
+    'text/rdf+xml',
+    'text/rss',
+    'text/atom',
+    'text/rdf'
+];
+
+const FEED_URL_SUFFIXES = [
+    '/feed',
+    '/feed/',
+    '/rss',
+    '/rss/',
+    '/rss.xml',
+    '/feed.xml',
+    '/rss/news.xml',
+    '/articles/feed',
+    '/rss/index.html',
+    '/blog/feed/',
+    '/blog/feed.xml',
+    '/blog/rss/',
+    '/blog/rss.xml',
+    '/feed/posts/default',
+    '/?format=feed',
+    '/rss/featured'
+];
+
 /**
- * Get HTML source code froms URL
+ * Get HTML source code from URL (returns Promise)
+ */
+async function fetchHtmlSource(url) {
+    const response = await fetch(url, { method: 'get' });
+    if (response.ok) {
+        return await response.text();
+    }
+    return null;
+}
+
+/**
+ * Get HTML source code from URL (callback version for popup)
  */
 function getHtmlSource(url, callback) {
-    fetch(url, {
-        method: 'get'
-    })
-    .then(function(response){
-        if (response.status == 200) {
-            response.text().then(function(data){
+    fetchHtmlSource(url)
+        .then(function(data) {
+            if (data) {
                 callback(data);
-            })
-        }
-        else {
-            render('Unable to find feed');
-        }
-    })
-    .catch(function(error){
-        render('Error: '+error.message);
-    });
+            } else {
+                render('Unable to find feed');
+            }
+        })
+        .catch(function(error) {
+            render('Error: ' + error.message);
+        });
 }
 
 /**
@@ -39,6 +89,56 @@ function extractLinkTags(html) {
     let match = html.match(regex);
 
     return match || [];
+}
+
+/**
+ * Check if content is a valid RSS/Atom feed (without DOMParser, for service worker)
+ */
+function isValidFeedContent(content) {
+    // Check for RSS or Atom feed tags
+    return /<rss[\s>]/i.test(content) || /<feed[\s>]/i.test(content);
+}
+
+/**
+ * Try to find a feed URL by testing common suffixes (for service worker)
+ */
+async function tryToFindFeedCount(url) {
+    const urlData = parseUrl(url);
+
+    for (const suffix of FEED_URL_SUFFIXES) {
+        try {
+            const feedUrl = urlData.origin + suffix;
+            const response = await fetch(feedUrl, { method: 'get' });
+
+            if (response.ok) {
+                const content = await response.text();
+                if (isValidFeedContent(content)) {
+                    return 1;
+                }
+            }
+        } catch (error) {
+            // Continue to next suffix
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * Count feeds in HTML without using DOM (for service worker)
+ */
+function countFeedsFromHtml(html) {
+    const linkTags = extractLinkTags(html);
+    let count = 0;
+
+    for (const tag of linkTags) {
+        const typeMatch = tag.match(/type=['"]([^'"]+)['"]/i);
+        if (typeMatch && FEED_TYPES.includes(typeMatch[1].toLowerCase())) {
+            count++;
+        }
+    }
+
+    return count;
 }
 
 
@@ -88,16 +188,9 @@ function checkIfUrlIsKnown(url) {
  */
 function getFeedsURLs(url, callback) {
 
-    switch (parseUrl(url).protocol) {
-        case "chrome:":
-        case "chrome-extension:":
-        case "about:":
-        case "vivaldi:":
-        case "edge:":
-        case "chrome-devtools:":
-        case "devtools:":
-            render('Unable to find feed');
-            return false;
+    if (IGNORED_PROTOCOLS.includes(parseUrl(url).protocol)) {
+        render('Unable to find feed');
+        return false;
     }
 
     let getFeedUrl = checkIfUrlIsKnown(url);
@@ -125,28 +218,13 @@ async function searchFeed(url, callback) {
     let feeds_urls = [];
 
     if (document.getElementById('rss-feed-url_response').innerHTML != '') {
-        const types = [
-            'application/rss+xml',
-            'application/atom+xml',
-            'application/rdf+xml',
-            'application/rss',
-            'application/atom',
-            'application/rdf',
-            'text/rss+xml',
-            'text/atom+xml',
-            'text/rdf+xml',
-            'text/rss',
-            'text/atom',
-            'text/rdf'
-        ];
-
         let links = document.getElementById('rss-feed-url_response').querySelectorAll("#rss-feed-url_response link[type]");
 
         document.getElementById('rss-feed-url_response').innerHTML = '';
 
         for (let i = 0; i < links.length; i++) {
 
-            if (links[i].hasAttribute('type') && types.indexOf(links[i].getAttribute('type')) !== -1) {
+            if (links[i].hasAttribute('type') && FEED_TYPES.indexOf(links[i].getAttribute('type')) !== -1) {
 
                 let feed_url = links[i].getAttribute('href');
 
@@ -619,28 +697,9 @@ async function tryToGetFeedURL(tabUrl) {
     let feed = null;
     let isFound = false;
 
-    let tests = [
-        '/feed', 
-        '/feed/', 
-        '/rss', 
-        '/rss/', 
-        '/rss.xml', 
-        '/feed.xml', 
-        '/rss/news.xml', 
-        '/articles/feed', 
-        '/rss/index.html',
-        '/blog/feed/',
-        '/blog/feed.xml',
-        '/blog/rss/',
-        '/blog/rss.xml',
-        '/feed/posts/default',
-        '/?format=feed',
-        '/rss/featured'
-    ];
-
-    for (let t = 0; t < tests.length; t++) {
+    for (let t = 0; t < FEED_URL_SUFFIXES.length; t++) {
         if (isFound === false) {
-            let feed_url = url_datas.origin + tests[t];
+            let feed_url = url_datas.origin + FEED_URL_SUFFIXES[t];
 
             let response = await fetch(feed_url, { method: 'get' });
 

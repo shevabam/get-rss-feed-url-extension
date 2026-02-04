@@ -1,40 +1,72 @@
 importScripts('utilities.js');
 importScripts('functions.js');
 
+// Update badge for a tab
+async function updateBadge(tabId, url) {
+    // Ignore special URLs
+    if (IGNORED_PROTOCOLS.includes(parseUrl(url).protocol)) {
+        chrome.action.setBadgeText({ text: "", tabId: tabId });
+        return;
+    }
+
+    let feedCount = 0;
+
+    // Check known services (YouTube, Reddit, GitHub, etc.)
+    const knownFeeds = checkIfUrlIsKnown(url);
+    if (knownFeeds && knownFeeds.length > 0) {
+        feedCount = knownFeeds.length;
+    } else {
+        // Otherwise, fetch and parse the HTML
+        try {
+            const html = await fetchHtmlSource(url);
+            if (html) {
+                feedCount = countFeedsFromHtml(html);
+            }
+
+            // If no feed found in HTML, try common feed URL suffixes
+            if (feedCount === 0) {
+                feedCount = await tryToFindFeedCount(url);
+            }
+        } catch (error) {
+            // Silent on error (CORS, etc.)
+        }
+    }
+
+    if (feedCount === 0) {
+        chrome.action.setBadgeText({ text: "", tabId: tabId });
+    } else {
+        chrome.action.setBadgeText({ text: feedCount.toString(), tabId: tabId });
+        chrome.action.setBadgeBackgroundColor({ color: "#82b2faff", tabId: tabId });
+    }
+}
+
+// Listen for tab changes
 chrome.tabs.onActivated.addListener(function(activeInfo) {
-    // updateIcon(activeInfo.tabId);
-});
-
-//listen for current tab to be changed
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-    // updateIcon(tabId);
-});
-
-/* async function updateIcon(tabId) {
-    chrome.tabs.get(tabId, function(change){
-
-        chrome.tabs.get(tabId, function(tab){
-            var url = tab.url;
-
-            getFeedsURLs(url, function(feeds){
-
-                nbFeeds = feeds.length;
-
-                // console.log('nbFeeds (bg) : '+nbFeeds);
-
-                if (nbFeeds == 0) {
-                    chrome.action.setIcon({path: {"48": "/img/icon_grey-48.png"}, tabId: tabId});
-                    chrome.action.setBadgeText({text: "", tabId: tabId});
-                }
-                else {
-                    chrome.action.setIcon({path: {"48": "/img/icon_default-48.png"}, tabId: tabId});
-                    chrome.action.setBadgeText({text: nbFeeds.toString(), tabId: tabId});
-                }
-
-            });
-        });
+    chrome.tabs.get(activeInfo.tabId, function(tab) {
+        if (tab && tab.url) {
+            updateBadge(activeInfo.tabId, tab.url);
+        }
     });
-}; */
+});
+
+// Listen for page updates
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+    if (changeInfo.status === 'complete' && tab.url) {
+        updateBadge(tabId, tab.url);
+    }
+});
+
+// Listen for messages from popup to update badge
+chrome.runtime.onMessage.addListener(function(request) {
+    if (request.action === "updateBadge" && request.tabId) {
+        if (request.feedCount === 0) {
+            chrome.action.setBadgeText({ text: "", tabId: request.tabId });
+        } else {
+            chrome.action.setBadgeText({ text: request.feedCount.toString(), tabId: request.tabId });
+            chrome.action.setBadgeBackgroundColor({ color: "#82b2faff", tabId: request.tabId });
+        }
+    }
+});
 
 async function removeAllContextMenus() {
     return new Promise((resolve) => {
