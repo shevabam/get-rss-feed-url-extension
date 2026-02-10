@@ -2,7 +2,7 @@
     "manifest_version": 3,
     "name": "Get RSS Feed URL",
     "description": "Retreive RSS feeds URLs from Website",
-    "version": "3.2.0",
+    "version": "3.2.1",
     "author": "@shevabam",
     "homepage_url": "https://github.com/shevabam/get-rss-feed-url-extension",
     "permissions": [

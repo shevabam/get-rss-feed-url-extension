@@ -701,37 +701,41 @@ async function tryToGetFeedURL(tabUrl) {
         if (isFound === false) {
             let feed_url = url_datas.origin + FEED_URL_SUFFIXES[t];
 
-            let response = await fetch(feed_url, { method: 'get' });
+            try {
+                let response = await fetch(feed_url, { method: 'get' });
 
-            if (response.ok && response.status >= 200 && response.status < 300) {
-                let urlContent = await response.text();
+                if (response.ok && response.status >= 200 && response.status < 300) {
+                    let urlContent = await response.text();
 
-                let oParser = new DOMParser();
-                let oDOM = oParser.parseFromString(urlContent, "application/xml");
+                    let oParser = new DOMParser();
+                    let oDOM = oParser.parseFromString(urlContent, "application/xml");
 
-                let getRssTag = oDOM.getElementsByTagName('rss');
-                let getFeedTag = oDOM.getElementsByTagName('feed');
+                    let getRssTag = oDOM.getElementsByTagName('rss');
+                    let getFeedTag = oDOM.getElementsByTagName('feed');
 
-                if (getRssTag.length > 0 || getFeedTag.length > 0) {
+                    if (getRssTag.length > 0 || getFeedTag.length > 0) {
 
-                    if (getRssTag.length > 0) {
-                        var getChannelTag = getRssTag['0'].getElementsByTagName('channel');
-                    } else if (getFeedTag.length > 0) {
-                        var getChannelTag = getFeedTag['0'];
-                    }
+                        if (getRssTag.length > 0) {
+                            var getChannelTag = getRssTag['0'].getElementsByTagName('channel');
+                        } else if (getFeedTag.length > 0) {
+                            var getChannelTag = getFeedTag['0'];
+                        }
 
-                    if (getChannelTag !== false) {
-                        isFound = true;
+                        if (getChannelTag !== false) {
+                            isFound = true;
 
-                        feed = {
-                            type: '',
-                            url: feed_url,
-                            title: feed_url
-                        };
+                            feed = {
+                                type: '',
+                                url: feed_url,
+                                title: feed_url
+                            };
 
-                        return feed;
+                            return feed;
+                        }
                     }
                 }
+            } catch (error) {
+                // Continue to next suffix
             }
         }
     }
