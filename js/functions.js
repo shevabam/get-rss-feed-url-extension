@@ -39,17 +39,57 @@ const FEED_URL_SUFFIXES = [
     '/blog/rss/',
     '/blog/rss.xml',
     '/feed/posts/default',
-    '/?format=feed',
+    // '/?format=feed',
     '/rss/featured'
 ];
+
+// Default timeout for fetch requests (in milliseconds)
+const FETCH_TIMEOUT = 5000;
+
+// Default User-Agent to avoid being blocked by anti-bot systems
+const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+
+/**
+ * Fetch with timeout and default User-Agent
+ */
+async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    // Add default User-Agent if not provided
+    const headers = {
+        'User-Agent': DEFAULT_USER_AGENT,
+        ...options.headers
+    };
+
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers: headers,
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        return response;
+    } catch (error) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') {
+            throw new Error('Request timeout');
+        }
+        throw error;
+    }
+}
 
 /**
  * Get HTML source code from URL (returns Promise)
  */
 async function fetchHtmlSource(url) {
-    const response = await fetch(url, { method: 'get' });
-    if (response.ok) {
-        return await response.text();
+    try {
+        const response = await fetchWithTimeout(url, { method: 'get' });
+        if (response.ok) {
+            return await response.text();
+        }
+    } catch (error) {
+        console.warn(`Failed to fetch ${url}:`, error.message);
     }
     return null;
 }
@@ -108,7 +148,7 @@ async function tryToFindFeedCount(url) {
     for (const suffix of FEED_URL_SUFFIXES) {
         try {
             const feedUrl = urlData.origin + suffix;
-            const response = await fetch(feedUrl, { method: 'get' });
+            const response = await fetchWithTimeout(feedUrl, { method: 'get' });
 
             if (response.ok) {
                 const content = await response.text();
@@ -230,7 +270,7 @@ async function searchFeed(url, callback) {
 
                 // If feed's url starts with "//"
                 if (feed_url.startsWith('//')) {
-                    feed_url = "http:" + feed_url;
+                    feed_url = "https:" + feed_url;
                 }
                 // If feed's url starts with "/"
                 else if (feed_url.startsWith('/')) {
@@ -702,7 +742,7 @@ async function tryToGetFeedURL(tabUrl) {
             let feed_url = url_datas.origin + FEED_URL_SUFFIXES[t];
 
             try {
-                let response = await fetch(feed_url, { method: 'get' });
+                let response = await fetchWithTimeout(feed_url, { method: 'get' });
 
                 if (response.ok && response.status >= 200 && response.status < 300) {
                     let urlContent = await response.text();
