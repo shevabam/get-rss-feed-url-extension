@@ -179,6 +179,7 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
             // Cancel any pending update for this tab
             if (tabUpdateTimeouts.has(activeInfo.tabId)) {
                 clearTimeout(tabUpdateTimeouts.get(activeInfo.tabId));
+                tabUpdateTimeouts.delete(activeInfo.tabId);
             }
             // Update immediately when switching tabs
             updateBadge(activeInfo.tabId, tab.url);
