@@ -33,10 +33,20 @@ async function getCachedFeedCount(url) {
     if (!cacheKey) return null;
 
     try {
+        const urlObj = new URL(url);
         const result = await chrome.storage.local.get(cacheKey);
         const cached = result[cacheKey];
 
         if (cached && cached.expiresAt > Date.now()) {
+            // For "suffixes" source, cache is valid for the entire origin
+            // For "known" and "html" sources, validate pathname matches
+            if (cached.source !== "suffixes") {
+                if (cached.pathname && cached.pathname !== urlObj.pathname) {
+                    // Pathname changed, invalidate cache
+                    await chrome.storage.local.remove(cacheKey);
+                    return null;
+                }
+            }
             return cached.feedCount;
         }
 
@@ -54,14 +64,18 @@ async function getCachedFeedCount(url) {
 
 /**
  * Save feed count to cache
+ * @param {string} source - Source of the feed count: "known", "html", or "suffixes"
  */
-async function cacheFeedCount(url, feedCount) {
+async function cacheFeedCount(url, feedCount, source = "html") {
     const cacheKey = getCacheKey(url);
     if (!cacheKey) return;
 
     try {
+        const urlObj = new URL(url);
         const cacheData = {
             feedCount: feedCount,
+            pathname: urlObj.pathname,
+            source: source,
             timestamp: Date.now(),
             expiresAt: Date.now() + CACHE_EXPIRATION
         };
@@ -69,6 +83,33 @@ async function cacheFeedCount(url, feedCount) {
         await chrome.storage.local.set({ [cacheKey]: cacheData });
     } catch (error) {
         console.error('Error writing cache:', error);
+    }
+}
+
+/**
+ * Clean expired cache entries from storage
+ */
+async function cleanExpiredCache() {
+    try {
+        const allData = await chrome.storage.local.get(null);
+        const now = Date.now();
+        const keysToRemove = [];
+
+        // Find all expired cache entries
+        for (const [key, value] of Object.entries(allData)) {
+            if (key.startsWith(CACHE_PREFIX)) {
+                if (value && value.expiresAt && value.expiresAt < now) {
+                    keysToRemove.push(key);
+                }
+            }
+        }
+
+        // Remove expired entries
+        if (keysToRemove.length > 0) {
+            await chrome.storage.local.remove(keysToRemove);
+        }
+    } catch (error) {
+        console.error('Error cleaning expired cache:', error);
     }
 }
 
@@ -94,11 +135,13 @@ async function updateBadge(tabId, url) {
     }
 
     let feedCount = 0;
+    let source = "html"; // Default source
 
     // Check known services (YouTube, Reddit, GitHub, etc.)
     const knownFeeds = checkIfUrlIsKnown(url);
     if (knownFeeds && knownFeeds.length > 0) {
         feedCount = knownFeeds.length;
+        source = "known";
     } else {
         // Otherwise, fetch and parse the HTML
         try {
@@ -110,14 +153,15 @@ async function updateBadge(tabId, url) {
             // If no feed found in HTML, try common feed URL suffixes
             if (feedCount === 0) {
                 feedCount = await tryToFindFeedCount(url);
+                source = "suffixes";
             }
         } catch (error) {
             // Silent on error (CORS, etc.)
         }
     }
 
-    // Save to cache
-    await cacheFeedCount(url, feedCount);
+    // Save to cache with source
+    await cacheFeedCount(url, feedCount, source);
 
     // Update badge
     if (feedCount === 0) {
@@ -243,10 +287,12 @@ async function createActionContextMenus() {
 
 chrome.runtime.onInstalled.addListener(async () => {
     await createActionContextMenus();
+    await cleanExpiredCache();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
     await createActionContextMenus();
+    await cleanExpiredCache();
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
