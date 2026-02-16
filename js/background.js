@@ -1,6 +1,118 @@
 importScripts('utilities.js');
 importScripts('functions.js');
 
+// Store pending timeouts for debouncing
+const tabUpdateTimeouts = new Map();
+
+// Debounce delay in milliseconds (wait for navigation to stabilize)
+const DEBOUNCE_DELAY = 1000;
+
+// Cache expiration time in milliseconds (1 hour)
+const CACHE_EXPIRATION = 60 * 60 * 1000;
+
+// Cache key prefix
+const CACHE_PREFIX = 'getrss_cache_';
+
+/**
+ * Generate cache key for a given URL
+ */
+function getCacheKey(url) {
+    try {
+        const urlObj = new URL(url);
+        return CACHE_PREFIX + urlObj.origin;
+    } catch (error) {
+        return null;
+    }
+}
+
+/**
+ * Get cached feed count for a URL
+ */
+async function getCachedFeedCount(url) {
+    const cacheKey = getCacheKey(url);
+    if (!cacheKey) return null;
+
+    try {
+        const urlObj = new URL(url);
+        const result = await chrome.storage.local.get(cacheKey);
+        const cached = result[cacheKey];
+
+        if (cached && cached.expiresAt > Date.now()) {
+            // For "suffixes" source, cache is valid for the entire origin
+            // For "known" and "html" sources, validate pathname matches
+            if (cached.source !== "suffixes") {
+                if (cached.pathname && cached.pathname !== urlObj.pathname) {
+                    // Pathname changed, invalidate cache
+                    await chrome.storage.local.remove(cacheKey);
+                    return null;
+                }
+            }
+            return cached.feedCount;
+        }
+
+        // Cache expired, remove it
+        if (cached) {
+            await chrome.storage.local.remove(cacheKey);
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Error reading cache:', error);
+        return null;
+    }
+}
+
+/**
+ * Save feed count to cache
+ * @param {string} source - Source of the feed count: "known", "html", or "suffixes"
+ */
+async function cacheFeedCount(url, feedCount, source = "html") {
+    const cacheKey = getCacheKey(url);
+    if (!cacheKey) return;
+
+    try {
+        const urlObj = new URL(url);
+        const cacheData = {
+            feedCount: feedCount,
+            pathname: urlObj.pathname,
+            source: source,
+            timestamp: Date.now(),
+            expiresAt: Date.now() + CACHE_EXPIRATION
+        };
+
+        await chrome.storage.local.set({ [cacheKey]: cacheData });
+    } catch (error) {
+        console.error('Error writing cache:', error);
+    }
+}
+
+/**
+ * Clean expired cache entries from storage
+ */
+async function cleanExpiredCache() {
+    try {
+        const allData = await chrome.storage.local.get(null);
+        const now = Date.now();
+        const keysToRemove = [];
+
+        // Find all expired cache entries
+        for (const [key, value] of Object.entries(allData)) {
+            if (key.startsWith(CACHE_PREFIX)) {
+                if (value && value.expiresAt && value.expiresAt < now) {
+                    keysToRemove.push(key);
+                }
+            }
+        }
+
+        // Remove expired entries
+        if (keysToRemove.length > 0) {
+            await chrome.storage.local.remove(keysToRemove);
+        }
+    } catch (error) {
+        console.error('Error cleaning expired cache:', error);
+    }
+}
+
 // Update badge for a tab
 async function updateBadge(tabId, url) {
     // Ignore special URLs
@@ -9,12 +121,27 @@ async function updateBadge(tabId, url) {
         return;
     }
 
+    // Check cache first
+    const cachedCount = await getCachedFeedCount(url);
+    if (cachedCount !== null) {
+        // Use cached result
+        if (cachedCount === 0) {
+            chrome.action.setBadgeText({ text: "", tabId: tabId });
+        } else {
+            chrome.action.setBadgeText({ text: cachedCount.toString(), tabId: tabId });
+            chrome.action.setBadgeBackgroundColor({ color: "#82b2faff", tabId: tabId });
+        }
+        return;
+    }
+
     let feedCount = 0;
+    let source = "html"; // Default source
 
     // Check known services (YouTube, Reddit, GitHub, etc.)
     const knownFeeds = checkIfUrlIsKnown(url);
     if (knownFeeds && knownFeeds.length > 0) {
         feedCount = knownFeeds.length;
+        source = "known";
     } else {
         // Otherwise, fetch and parse the HTML
         try {
@@ -26,12 +153,17 @@ async function updateBadge(tabId, url) {
             // If no feed found in HTML, try common feed URL suffixes
             if (feedCount === 0) {
                 feedCount = await tryToFindFeedCount(url);
+                source = "suffixes";
             }
         } catch (error) {
             // Silent on error (CORS, etc.)
         }
     }
 
+    // Save to cache with source
+    await cacheFeedCount(url, feedCount, source);
+
+    // Update badge
     if (feedCount === 0) {
         chrome.action.setBadgeText({ text: "", tabId: tabId });
     } else {
@@ -44,6 +176,12 @@ async function updateBadge(tabId, url) {
 chrome.tabs.onActivated.addListener(function(activeInfo) {
     chrome.tabs.get(activeInfo.tabId, function(tab) {
         if (tab && tab.url) {
+            // Cancel any pending update for this tab
+            if (tabUpdateTimeouts.has(activeInfo.tabId)) {
+                clearTimeout(tabUpdateTimeouts.get(activeInfo.tabId));
+                tabUpdateTimeouts.delete(activeInfo.tabId);
+            }
+            // Update immediately when switching tabs
             updateBadge(activeInfo.tabId, tab.url);
         }
     });
@@ -51,8 +189,28 @@ chrome.tabs.onActivated.addListener(function(activeInfo) {
 
 // Listen for page updates
 chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-    if (changeInfo.status === 'complete' && tab.url) {
-        updateBadge(tabId, tab.url);
+    // Only trigger on actual URL changes or when page finishes loading
+    if ((changeInfo.url || changeInfo.status === 'complete') && tab.url) {
+        // Cancel any pending update for this tab
+        if (tabUpdateTimeouts.has(tabId)) {
+            clearTimeout(tabUpdateTimeouts.get(tabId));
+        }
+
+        // Debounce: wait for navigation to stabilize before updating
+        const timeoutId = setTimeout(() => {
+            updateBadge(tabId, tab.url);
+            tabUpdateTimeouts.delete(tabId);
+        }, DEBOUNCE_DELAY);
+
+        tabUpdateTimeouts.set(tabId, timeoutId);
+    }
+});
+
+// Clean up when tabs are closed to prevent memory leaks
+chrome.tabs.onRemoved.addListener(function(tabId) {
+    if (tabUpdateTimeouts.has(tabId)) {
+        clearTimeout(tabUpdateTimeouts.get(tabId));
+        tabUpdateTimeouts.delete(tabId);
     }
 });
 
@@ -130,10 +288,12 @@ async function createActionContextMenus() {
 
 chrome.runtime.onInstalled.addListener(async () => {
     await createActionContextMenus();
+    await cleanExpiredCache();
 });
 
 chrome.runtime.onStartup.addListener(async () => {
     await createActionContextMenus();
+    await cleanExpiredCache();
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
