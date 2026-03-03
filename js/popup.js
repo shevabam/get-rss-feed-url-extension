@@ -31,7 +31,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const tab = tabs[0];
         const url = tab.url;
 
+        // Warn the user if the search is taking longer than expected
+        const slowTimer = setTimeout(() => {
+            const loaderText = document.querySelector('.loader-text');
+            if (loaderText) loaderText.textContent = 'Still searching, this may take a moment…';
+        }, 3000);
+
+        // Hard timeout: stop waiting after 10s
+        const hardTimer = setTimeout(() => {
+            render('The search timed out. The page may be slow or blocking requests.');
+        }, 10000);
+
         getFeedsURLs(url, function(feeds){
+            clearTimeout(slowTimer);
+            clearTimeout(hardTimer);
 
             // Send feed count to background to update badge
             chrome.runtime.sendMessage({
