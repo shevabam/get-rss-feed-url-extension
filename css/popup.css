@@ -384,6 +384,82 @@ body.dark-theme .theme-toggle .moon-icon {
     color: var(--text-muted);
 }
 
+/* Ignore Site Toggle Button */
+.ignore-toggle {
+    position: absolute;
+    left: 0;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+}
+.ignore-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+.ignore-toggle:active {
+    transform: scale(0.95);
+}
+.ignore-toggle.is-ignored {
+    background: rgba(220, 53, 69, 0.75);
+}
+.ignore-toggle.is-ignored:hover {
+    background: rgba(220, 53, 69, 0.95);
+}
+
+/* === Ignored State === */
+.ignored-state {
+    text-align: center;
+    padding: 32px 20px 24px;
+}
+.ignored-state-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    color: var(--text-muted);
+    opacity: 0.45;
+}
+.ignored-state-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+.ignored-state-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 18px;
+}
+.unignore-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    padding: 6px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.unignore-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+.unignore-btn:active {
+    transform: scale(0.97);
+}
+
 /* === Hidden Response Container === */
 .rss-feed-url #rss-feed-url_response {
     display: none;

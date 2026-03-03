@@ -31,92 +31,147 @@ document.addEventListener('DOMContentLoaded', function() {
         const tab = tabs[0];
         const url = tab.url;
 
-        // Warn the user if the search is taking longer than expected
-        const slowTimer = setTimeout(() => {
-            const loaderText = document.querySelector('.loader-text');
-            if (loaderText) loaderText.textContent = 'Still searching, this may take a moment…';
-        }, 3000);
+        // Determine hostname for the ignore feature (http/https only)
+        let hostname = null;
+        try {
+            const urlObj = new URL(url);
+            if (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') {
+                hostname = urlObj.hostname;
+            }
+        } catch(e) {}
 
-        // Hard timeout: stop waiting after 10s
-        const hardTimer = setTimeout(() => {
-            render('The search timed out. The page may be slow or blocking requests.');
-        }, 10000);
+        // Hide ignore button for non-http pages (chrome://, etc.)
+        const ignoreBtn = document.getElementById('ignore-site');
+        if (!hostname) {
+            ignoreBtn.style.display = 'none';
+        }
 
-        getFeedsURLs(url, function(feeds){
-            clearTimeout(slowTimer);
-            clearTimeout(hardTimer);
+        // Check ignored sites list, then proceed
+        chrome.storage.sync.get(['ignoredSites'], function(result) {
+            const ignoredSites = result.ignoredSites || [];
+            const isIgnored = hostname !== null && ignoredSites.includes(hostname);
 
-            // Send feed count to background to update badge
-            chrome.runtime.sendMessage({
-                action: "updateBadge",
-                tabId: tab.id,
-                feedCount: feeds.length
-            });
-
-            if (feeds.length > 0) {
-                const feedsList = document.createElement('div');
-                feedsList.id = 'feeds-list';
-
-                for (let i = 0; i < feeds.length; i++) {
-                    feedsList.appendChild(createFeedCard(feeds[i], tab.title));
-                }
-
-                const feedsEl = document.getElementById('feeds');
-                feedsEl.innerHTML = '';
-                feedsEl.appendChild(feedsList);
-                feedsEl.appendChild(createCopyAllContainer());
-
-                // Copy to clipboard feed URL
-                const copyButtons = document.getElementsByClassName('copyLink');
-
-                for (let i = 0; i < copyButtons.length; i++) {
-                    copyButtons[i].addEventListener("click", function(e) {
-                        e.preventDefault();
-                        const button = this;
-                        const url = button.getAttribute('data-url');
-                        const btnText = button.querySelector('.btn-text');
-
-                        // Visual feedback
-                        button.classList.add('copied');
-                        const originalText = btnText.textContent;
-                        btnText.textContent = 'Copied!';
-
-                        setTimeout(() => {
-                            button.classList.remove('copied');
-                            btnText.textContent = originalText;
-                        }, 2000);
-
-                        copyToClipboard(url);
-                    });
-                }
-
-                // Copy to clipboard all feeds URLs
-                const copyButtonAll = document.getElementById('copyAllLinks');
-
-                copyButtonAll.addEventListener("click", function(e) {
-                    e.preventDefault();
-                    const button = this;
-                    const links = document.getElementById('feeds-list').querySelectorAll('.feed-title.link');
-                    const text = Array.from(links).map(a => a.getAttribute('href')).join('\n');
-
-                    // Visual feedback
-                    button.classList.add('copied');
-                    const btnText = button.querySelector('.btn-text');
-                    const originalText = btnText.textContent;
-                    btnText.textContent = 'Copied!';
-
-                    setTimeout(() => {
-                        button.classList.remove('copied');
-                        btnText.textContent = originalText;
-                    }, 2000);
-
-                    copyToClipboard(text);
-                });
-
-            } else {
-                renderEmptyState();
+            if (isIgnored) {
+                ignoreBtn.classList.add('is-ignored');
+                ignoreBtn.title = 'Enable RSS for this site';
+                renderIgnoredState(hostname);
             }
 
+            // Setup ignore button click handler
+            if (hostname) {
+                ignoreBtn.addEventListener('click', function() {
+                    chrome.storage.sync.get(['ignoredSites'], function(result) {
+                        let sites = result.ignoredSites || [];
+                        const idx = sites.indexOf(hostname);
+
+                        if (idx === -1) {
+                            // Add to ignored list
+                            sites.push(hostname);
+                            chrome.storage.sync.set({ ignoredSites: sites }, function() {
+                                chrome.runtime.sendMessage({ action: "updateBadge", tabId: tab.id, feedCount: 0 });
+                                ignoreBtn.classList.add('is-ignored');
+                                ignoreBtn.title = 'Enable RSS for this site';
+                                renderIgnoredState(hostname);
+                            });
+                        } else {
+                            // Remove from ignored list
+                            sites.splice(idx, 1);
+                            chrome.storage.sync.set({ ignoredSites: sites }, function() {
+                                location.reload();
+                            });
+                        }
+                    });
+                });
+            }
+
+            if (!isIgnored) {
+                // Warn the user if the search is taking longer than expected
+                const slowTimer = setTimeout(() => {
+                    const loaderText = document.querySelector('.loader-text');
+                    if (loaderText) loaderText.textContent = 'Still searching, this may take a moment…';
+                }, 3000);
+
+                // Hard timeout: stop waiting after 10s
+                const hardTimer = setTimeout(() => {
+                    render('The search timed out. The page may be slow or blocking requests.');
+                }, 10000);
+
+                getFeedsURLs(url, function(feeds){
+                    clearTimeout(slowTimer);
+                    clearTimeout(hardTimer);
+
+                    // Send feed count to background to update badge
+                    chrome.runtime.sendMessage({
+                        action: "updateBadge",
+                        tabId: tab.id,
+                        feedCount: feeds.length
+                    });
+
+                    if (feeds.length > 0) {
+                        const feedsList = document.createElement('div');
+                        feedsList.id = 'feeds-list';
+
+                        for (let i = 0; i < feeds.length; i++) {
+                            feedsList.appendChild(createFeedCard(feeds[i], tab.title));
+                        }
+
+                        const feedsEl = document.getElementById('feeds');
+                        feedsEl.innerHTML = '';
+                        feedsEl.appendChild(feedsList);
+                        feedsEl.appendChild(createCopyAllContainer());
+
+                        // Copy to clipboard feed URL
+                        const copyButtons = document.getElementsByClassName('copyLink');
+
+                        for (let i = 0; i < copyButtons.length; i++) {
+                            copyButtons[i].addEventListener("click", function(e) {
+                                e.preventDefault();
+                                const button = this;
+                                const url = button.getAttribute('data-url');
+                                const btnText = button.querySelector('.btn-text');
+
+                                // Visual feedback
+                                button.classList.add('copied');
+                                const originalText = btnText.textContent;
+                                btnText.textContent = 'Copied!';
+
+                                setTimeout(() => {
+                                    button.classList.remove('copied');
+                                    btnText.textContent = originalText;
+                                }, 2000);
+
+                                copyToClipboard(url);
+                            });
+                        }
+
+                        // Copy to clipboard all feeds URLs
+                        const copyButtonAll = document.getElementById('copyAllLinks');
+
+                        copyButtonAll.addEventListener("click", function(e) {
+                            e.preventDefault();
+                            const button = this;
+                            const links = document.getElementById('feeds-list').querySelectorAll('.feed-title.link');
+                            const text = Array.from(links).map(a => a.getAttribute('href')).join('\n');
+
+                            // Visual feedback
+                            button.classList.add('copied');
+                            const btnText = button.querySelector('.btn-text');
+                            const originalText = btnText.textContent;
+                            btnText.textContent = 'Copied!';
+
+                            setTimeout(() => {
+                                button.classList.remove('copied');
+                                btnText.textContent = originalText;
+                            }, 2000);
+
+                            copyToClipboard(text);
+                        });
+
+                    } else {
+                        renderEmptyState();
+                    }
+                });
+            }
         });
     });
 });
@@ -134,6 +189,52 @@ function getFeedType(typeOrUrl) {
     if (type.includes('rdf')) return 'RDF';
 
     return '';
+}
+
+/**
+ * Render ignored state when site is in the ignore list
+ */
+function renderIgnoredState(hostname) {
+    const container = document.createElement('div');
+    container.className = 'ignored-state';
+
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('class', 'ignored-state-icon');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    icon.innerHTML = '<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M5.636 5.636L18.364 18.364" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>';
+
+    const title = document.createElement('div');
+    title.className = 'ignored-state-title';
+    title.textContent = 'Site Ignored';
+
+    const text = document.createElement('div');
+    text.className = 'ignored-state-text';
+    text.textContent = 'RSS feeds are not searched for this site.';
+
+    const btn = document.createElement('button');
+    btn.className = 'unignore-btn';
+    btn.textContent = 'Enable for this site';
+    btn.addEventListener('click', function() {
+        chrome.storage.sync.get(['ignoredSites'], function(result) {
+            let sites = result.ignoredSites || [];
+            const idx = sites.indexOf(hostname);
+            if (idx !== -1) sites.splice(idx, 1);
+            chrome.storage.sync.set({ ignoredSites: sites }, function() {
+                location.reload();
+            });
+        });
+    });
+
+    container.appendChild(icon);
+    container.appendChild(title);
+    container.appendChild(text);
+    container.appendChild(btn);
+
+    const feedsEl = document.getElementById('feeds');
+    feedsEl.innerHTML = '';
+    feedsEl.appendChild(container);
 }
 
 /**

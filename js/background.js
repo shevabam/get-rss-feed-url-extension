@@ -125,6 +125,15 @@ async function updateBadge(tabId, url) {
         return;
     }
 
+    // Skip sites the user has chosen to ignore
+    try {
+        const { ignoredSites = [] } = await chrome.storage.sync.get(['ignoredSites']);
+        if (ignoredSites.includes(new URL(url).hostname)) {
+            chrome.action.setBadgeText({ text: "", tabId: tabId });
+            return;
+        }
+    } catch(e) {}
+
     // Check cache first
     const cachedCount = await getCachedFeedCount(url);
     if (cachedCount !== null) {
