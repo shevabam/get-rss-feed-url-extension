@@ -1,5 +1,3 @@
-document.getElementById('review-link').href = `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews`;
-
 // Theme management
 function initTheme() {
     // Load saved theme preference
@@ -27,6 +25,8 @@ function initTheme() {
 initTheme();
 
 document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('review-link').href = `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews`;
+
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
         const tab = tabs[0];
         const url = tab.url;
@@ -41,47 +41,17 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (feeds.length > 0) {
-                let html = '<div id="feeds-list">';
+                const feedsList = document.createElement('div');
+                feedsList.id = 'feeds-list';
 
                 for (let i = 0; i < feeds.length; i++) {
-                    const feedType = getFeedType(feeds[i].type || feeds[i].url);
-
-                    html += '<div class="feed-card">';
-                    html +=   '<div class="feed-info">';
-                    html +=     '<div class="feed-title-row">';
-                    html +=       '<a class="feed-title link" href="'+feeds[i].url+'" title="'+feeds[i].title+'" data-tabtitle="'+tab.title+'" target="_blank">'+feeds[i].title+'</a>';
-                    if (feedType) {
-                        html +=   '<span class="feed-type-badge">'+feedType+'</span>';
-                    }
-                    html +=     '</div>';
-                    html +=     '<span class="feed-url" title="'+feeds[i].url+'">'+truncate(feeds[i].url, 55)+'</span>';
-                    html +=     '<div class="feed-actions">';
-                    html +=       '<button class="copy-btn copyLink" title="Copy feed URL" data-url="'+feeds[i].url+'">';
-                    html +=         '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">';
-                    html +=           '<rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-                    html +=           '<path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-                    html +=         '</svg>';
-                    html +=         '<span class="btn-text">Copy URL</span>';
-                    html +=       '</button>';
-                    html +=     '</div>';
-                    html +=   '</div>';
-                    html += '</div>';
+                    feedsList.appendChild(createFeedCard(feeds[i], tab.title));
                 }
 
-                html += '</div>';
-
-                html += '<div class="copy-all-container">';
-                html +=   '<button id="copyAllLinks" class="copy-all-btn" title="Copy all feeds URLs">';
-                html +=     '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">';
-                html +=       '<rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-                html +=       '<path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
-                html +=     '</svg>';
-                html +=     'Copy All URLs';
-                html +=   '</button>';
-                html += '</div>';
-
-                render(html);
-
+                const feedsEl = document.getElementById('feeds');
+                feedsEl.innerHTML = '';
+                feedsEl.appendChild(feedsList);
+                feedsEl.appendChild(createCopyAllContainer());
 
                 // Copy to clipboard feed URL
                 const copyButtons = document.getElementsByClassName('copyLink');
@@ -91,8 +61,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         e.preventDefault();
                         const button = this;
                         const url = button.getAttribute('data-url');
-                        const feed = button.closest('.feed-card').querySelector('a.link');
-                        const tabTitle = feed.getAttribute('data-tabtitle');
                         const btnText = button.querySelector('.btn-text');
 
                         // Visual feedback
@@ -109,32 +77,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
 
-
                 // Copy to clipboard all feeds URLs
                 const copyButtonAll = document.getElementById('copyAllLinks');
 
                 copyButtonAll.addEventListener("click", function(e) {
                     e.preventDefault();
                     const button = this;
-                    const feeds_list = document.getElementById('feeds-list').querySelectorAll('.feed-title.link');
-
-                    let text = '';
-                    for (let j = 0; j < feeds_list.length; j++) {
-                        text += feeds_list[j].getAttribute('href') + "\n";
-                    }
-                    const textToCopy = text.substring(0, text.length - 1);
+                    const links = document.getElementById('feeds-list').querySelectorAll('.feed-title.link');
+                    const text = Array.from(links).map(a => a.getAttribute('href')).join('\n');
 
                     // Visual feedback
                     button.classList.add('copied');
-                    const originalText = button.innerHTML;
-                    button.innerHTML = '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Copied!';
+                    const btnText = button.querySelector('.btn-text');
+                    const originalText = btnText.textContent;
+                    btnText.textContent = 'Copied!';
 
                     setTimeout(() => {
                         button.classList.remove('copied');
-                        button.innerHTML = originalText;
+                        btnText.textContent = originalText;
                     }, 2000);
 
-                    copyToClipboard(textToCopy);
+                    copyToClipboard(text);
                 });
 
             } else {
@@ -176,4 +139,98 @@ function renderEmptyState() {
         </div>
     `;
     render(html);
+}
+
+/**
+ * Create copy SVG icon (static content, no user data)
+ */
+function createSVGIcon() {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+    return svg;
+}
+
+/**
+ * Create a feed card DOM element (no innerHTML with user data)
+ */
+function createFeedCard(feed, tabTitle) {
+    const feedType = getFeedType(feed.type || feed.url);
+
+    const card = document.createElement('div');
+    card.className = 'feed-card';
+
+    const info = document.createElement('div');
+    info.className = 'feed-info';
+
+    const titleRow = document.createElement('div');
+    titleRow.className = 'feed-title-row';
+
+    const titleLink = document.createElement('a');
+    titleLink.className = 'feed-title link';
+    titleLink.href = feed.url;
+    titleLink.title = feed.title;
+    titleLink.setAttribute('data-tabtitle', tabTitle);
+    titleLink.target = '_blank';
+    titleLink.textContent = feed.title;
+    titleRow.appendChild(titleLink);
+
+    if (feedType) {
+        const badge = document.createElement('span');
+        badge.className = 'feed-type-badge';
+        badge.textContent = feedType;
+        titleRow.appendChild(badge);
+    }
+
+    const urlSpan = document.createElement('span');
+    urlSpan.className = 'feed-url';
+    urlSpan.title = feed.url;
+    urlSpan.textContent = truncate(feed.url, 55);
+
+    const actions = document.createElement('div');
+    actions.className = 'feed-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-btn copyLink';
+    copyBtn.title = 'Copy feed URL';
+    copyBtn.setAttribute('aria-label', 'Copy feed URL');
+    copyBtn.setAttribute('data-url', feed.url);
+    copyBtn.appendChild(createSVGIcon());
+
+    const btnText = document.createElement('span');
+    btnText.className = 'btn-text';
+    btnText.textContent = 'Copy URL';
+    copyBtn.appendChild(btnText);
+
+    actions.appendChild(copyBtn);
+    info.appendChild(titleRow);
+    info.appendChild(urlSpan);
+    info.appendChild(actions);
+    card.appendChild(info);
+
+    return card;
+}
+
+/**
+ * Create the "Copy All URLs" button container
+ */
+function createCopyAllContainer() {
+    const container = document.createElement('div');
+    container.className = 'copy-all-container';
+
+    const btn = document.createElement('button');
+    btn.id = 'copyAllLinks';
+    btn.className = 'copy-all-btn';
+    btn.title = 'Copy all feeds URLs';
+    btn.setAttribute('aria-label', 'Copy all feeds URLs');
+    btn.appendChild(createSVGIcon());
+
+    const btnText = document.createElement('span');
+    btnText.className = 'btn-text';
+    btnText.textContent = 'Copy All URLs';
+    btn.appendChild(btnText);
+
+    container.appendChild(btn);
+    return container;
 }

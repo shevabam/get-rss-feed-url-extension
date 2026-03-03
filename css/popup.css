@@ -367,9 +367,10 @@ body.dark-theme .theme-toggle .moon-icon {
     padding: 12px;
     border-top: 1px solid var(--border-color);
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 4px 8px;
 }
 .rss-feed-url footer a {
     color: var(--text-secondary);
