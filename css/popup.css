@@ -277,21 +277,19 @@ body.dark-theme .theme-toggle .moon-icon {
 .copy-all-container {
     margin-top: 16px;
     margin-bottom: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border-color);
     display: flex;
-    justify-content: flex-end;
+    justify-content: center;
 }
 .copy-all-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     background: transparent;
     color: var(--primary-color);
     border: 1px solid var(--primary-color);
-    padding: 8px 16px;
+    padding: 5px 12px;
     border-radius: var(--radius-sm);
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
@@ -307,8 +305,8 @@ body.dark-theme .theme-toggle .moon-icon {
     color: white;
 }
 .copy-all-btn svg {
-    width: 16px;
-    height: 16px;
+    width: 13px;
+    height: 13px;
 }
 
 /* === Empty State === */
@@ -382,7 +380,7 @@ body.dark-theme .theme-toggle .moon-icon {
     color: var(--primary-color);
 }
 .separator {
-    color: var(--border-color);
+    color: var(--text-muted);
 }
 
 /* === Hidden Response Container === */

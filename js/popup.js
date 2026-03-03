@@ -1,3 +1,5 @@
+document.getElementById('review-link').href = `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews`;
+
 // Theme management
 function initTheme() {
     // Load saved theme preference
