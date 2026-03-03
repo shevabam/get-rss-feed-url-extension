@@ -7,8 +7,11 @@ const tabUpdateTimeouts = new Map();
 // Debounce delay in milliseconds (wait for navigation to stabilize)
 const DEBOUNCE_DELAY = 1000;
 
-// Cache expiration time in milliseconds (1 hour)
-const CACHE_EXPIRATION = 60 * 60 * 1000;
+// Cache expiration time for positive results (feeds found) - 24 hours
+const CACHE_EXPIRATION = 24 * 60 * 60 * 1000;
+
+// Cache expiration time for negative results (no feeds found) - 7 days
+const CACHE_EXPIRATION_NEGATIVE = 7 * 24 * 60 * 60 * 1000;
 
 // Cache key prefix
 const CACHE_PREFIX = 'getrss_cache_';
@@ -72,12 +75,13 @@ async function cacheFeedCount(url, feedCount, source = "html") {
 
     try {
         const urlObj = new URL(url);
+        const expiration = feedCount === 0 ? CACHE_EXPIRATION_NEGATIVE : CACHE_EXPIRATION;
         const cacheData = {
             feedCount: feedCount,
             pathname: urlObj.pathname,
             source: source,
             timestamp: Date.now(),
-            expiresAt: Date.now() + CACHE_EXPIRATION
+            expiresAt: Date.now() + expiration
         };
 
         await chrome.storage.local.set({ [cacheKey]: cacheData });
