@@ -46,8 +46,8 @@ const FEED_URL_SUFFIXES = [
 // Default timeout for fetch requests (in milliseconds)
 const FETCH_TIMEOUT = 5000;
 
-// Default User-Agent to avoid being blocked by anti-bot systems
-const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+// Use the browser's own User-Agent to avoid hardcoded version strings becoming outdated
+const DEFAULT_USER_AGENT = navigator.userAgent;
 
 /**
  * Fetch with timeout and default User-Agent
@@ -711,21 +711,29 @@ function getMirrorXyzRss(url) {
  * Prints message in #feeds
  */
 function render(content) {
-    document.getElementById('feeds').innerHTML = content;
+    // If it's a simple text message, wrap it in empty state
+    if (typeof content === 'string' && !content.includes('<')) {
+        const html = `
+            <div class="empty-state">
+                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="12" cy="16" r="1" fill="currentColor"/>
+                </svg>
+                <div class="empty-state-title">${content}</div>
+            </div>
+        `;
+        document.getElementById('feeds').innerHTML = html;
+    } else {
+        document.getElementById('feeds').innerHTML = content;
+    }
 }
 
 /**
- * Copy to clipboard text with notification
+ * Copy to clipboard text
  */
-function copyToClipboard(text, notification) {
+function copyToClipboard(text) {
     navigator.clipboard.writeText(text);
-
-    chrome.notifications.create('get-rss-feed-url-copy', {
-        type: "basic",
-        title: notification.title || "Get RSS Feeds URLs",
-        message: notification.message,
-        iconUrl: "img/notif_"+notification.type+".png"
-    });
 }
 
 
