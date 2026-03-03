@@ -46,8 +46,8 @@ const FEED_URL_SUFFIXES = [
 // Default timeout for fetch requests (in milliseconds)
 const FETCH_TIMEOUT = 5000;
 
-// Default User-Agent to avoid being blocked by anti-bot systems
-const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+// Use the browser's own User-Agent to avoid hardcoded version strings becoming outdated
+const DEFAULT_USER_AGENT = navigator.userAgent;
 
 /**
  * Fetch with timeout and default User-Agent
