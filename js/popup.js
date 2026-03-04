@@ -26,6 +26,9 @@ initTheme();
 
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('review-link').href = `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews`;
+    document.getElementById('options-btn').addEventListener('click', function() {
+        chrome.runtime.openOptionsPage();
+    });
 
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
         const tab = tabs[0];
@@ -300,7 +303,7 @@ function createFeedCard(feed, tabTitle) {
     const urlSpan = document.createElement('span');
     urlSpan.className = 'feed-url';
     urlSpan.title = feed.url;
-    urlSpan.textContent = truncate(feed.url, 55);
+    urlSpan.textContent = truncate(feed.url, 60);
 
     const actions = document.createElement('div');
     actions.className = 'feed-actions';

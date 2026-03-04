@@ -58,9 +58,14 @@ body.rss-feed-url {
 .header-content {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 10px;
-    position: relative;
+}
+
+.header-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .rss-icon {
@@ -77,10 +82,32 @@ body.rss-feed-url {
     margin: 0;
 }
 
+/* Settings Toggle Button */
+.settings-toggle {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+}
+
+.settings-toggle:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.settings-toggle:active {
+    transform: scale(0.95);
+}
+
 /* Theme Toggle Button */
 .theme-toggle {
-    position: absolute;
-    right: 0;
     background: rgba(255, 255, 255, 0.2);
     border: none;
     width: 32px;
@@ -386,8 +413,6 @@ body.dark-theme .theme-toggle .moon-icon {
 
 /* Ignore Site Toggle Button */
 .ignore-toggle {
-    position: absolute;
-    left: 0;
     background: rgba(255, 255, 255, 0.2);
     border: none;
     width: 32px;
