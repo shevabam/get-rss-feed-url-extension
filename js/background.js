@@ -125,11 +125,23 @@ async function updateBadge(tabId, url) {
         return;
     }
 
+    // Skip sites the user has chosen to ignore
+    try {
+        const { ignoredSites = [] } = await chrome.storage.sync.get(['ignoredSites']);
+        if (ignoredSites.includes(new URL(url).hostname)) {
+            chrome.action.setBadgeText({ text: "", tabId: tabId });
+            return;
+        }
+    } catch(e) {}
+
+    // Check if badge display is enabled
+    const { showBadge = true } = await chrome.storage.sync.get(['showBadge']);
+
     // Check cache first
     const cachedCount = await getCachedFeedCount(url);
     if (cachedCount !== null) {
         // Use cached result
-        if (cachedCount === 0) {
+        if (cachedCount === 0 || !showBadge) {
             chrome.action.setBadgeText({ text: "", tabId: tabId });
         } else {
             chrome.action.setBadgeText({ text: cachedCount.toString(), tabId: tabId });
@@ -168,7 +180,7 @@ async function updateBadge(tabId, url) {
     await cacheFeedCount(url, feedCount, source);
 
     // Update badge
-    if (feedCount === 0) {
+    if (feedCount === 0 || !showBadge) {
         chrome.action.setBadgeText({ text: "", tabId: tabId });
     } else {
         chrome.action.setBadgeText({ text: feedCount.toString(), tabId: tabId });
@@ -221,12 +233,15 @@ chrome.tabs.onRemoved.addListener(function(tabId) {
 // Listen for messages from popup to update badge
 chrome.runtime.onMessage.addListener(function(request) {
     if (request.action === "updateBadge" && request.tabId) {
-        if (request.feedCount === 0) {
-            chrome.action.setBadgeText({ text: "", tabId: request.tabId });
-        } else {
-            chrome.action.setBadgeText({ text: request.feedCount.toString(), tabId: request.tabId });
-            chrome.action.setBadgeBackgroundColor({ color: "#82b2faff", tabId: request.tabId });
-        }
+        chrome.storage.sync.get(['showBadge'], function(result) {
+            const showBadge = result.showBadge !== false;
+            if (request.feedCount === 0 || !showBadge) {
+                chrome.action.setBadgeText({ text: "", tabId: request.tabId });
+            } else {
+                chrome.action.setBadgeText({ text: request.feedCount.toString(), tabId: request.tabId });
+                chrome.action.setBadgeBackgroundColor({ color: "#82b2faff", tabId: request.tabId });
+            }
+        });
     }
 });
 

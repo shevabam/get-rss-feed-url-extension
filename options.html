@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Get RSS Feed URLs – Options</title>
+    <link rel="stylesheet" href="css/options.css">
+</head>
+<body>
+
+<header>
+    <div class="header-content">
+        <svg class="rss-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M4 11C6.38695 11 8.67613 11.9482 10.364 13.636C12.0518 15.3239 13 17.6131 13 20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M4 4C8.24346 4 12.3131 5.68571 15.3137 8.68629C18.3143 11.6869 20 15.7565 20 20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="5" cy="19" r="1" fill="white"/>
+        </svg>
+        <h1>Get RSS Feed URLs — Options</h1>
+        <button id="theme-toggle" class="theme-toggle" title="Toggle theme" aria-label="Toggle dark mode">
+            <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 2V4M12 20V22M4 12H2M6.31412 6.31412L4.8999 4.8999M17.6859 6.31412L19.1001 4.8999M6.31412 17.69L4.8999 19.1042M17.6859 17.69L19.1001 19.1042M22 12H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </button>
+    </div>
+</header>
+
+<main>
+
+    <!-- Badge Section -->
+    <section class="options-section">
+        <h2 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="3" y="3" width="18" height="18" rx="4" stroke="currentColor" stroke-width="2"/>
+                <path d="M9 12h6M12 9v6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Badge
+        </h2>
+        <div class="option-row">
+            <div class="option-info">
+                <span class="option-label">Show feed count on icon</span>
+                <span class="option-desc">Display the number of RSS feeds found as a badge on the extension icon.</span>
+            </div>
+            <label class="toggle-switch" aria-label="Show feed count on icon">
+                <input type="checkbox" id="show-badge" checked>
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+    </section>
+
+    <!-- Cache Section -->
+    <section class="options-section">
+        <h2 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Cache
+        </h2>
+        <div class="option-row">
+            <div class="option-info">
+                <span class="option-label">Clear cached results</span>
+                <span class="option-desc">Remove all stored feed detection results. The cache will be rebuilt as you browse.</span>
+            </div>
+            <button id="clear-cache-btn" class="action-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M19 7L18.1327 19.1425C18.0579 20.1891 17.187 21 16.1378 21H7.86224C6.81296 21 5.94208 20.1891 5.86732 19.1425L5 7M10 11V17M14 11V17M15 7V4C15 3.44772 14.5523 3 14 3H10C9.44772 3 9 3.44772 9 4V7M4 7H20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span class="btn-text">Clear Cache</span>
+            </button>
+        </div>
+    </section>
+
+    <!-- Ignored Sites Section -->
+    <section class="options-section">
+        <h2 class="section-title">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/>
+                <path d="M5.636 5.636L18.364 18.364" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Ignored Sites
+        </h2>
+        <div id="ignored-sites-container"></div>
+    </section>
+
+</main>
+
+<footer>
+    <span>By <a href="https://shevabam.fr" target="_blank">shevabam</a></span>
+    <span class="separator">•</span>
+    <a href="https://github.com/shevabam/get-rss-feed-url-extension" target="_blank">GitHub</a>
+    <span class="separator">•</span>
+    <a href="https://buymeacoffee.com/shevabam" target="_blank">🍕 Buy me a pizza</a>
+    <span class="separator">•</span>
+    <a id="review-link" href="#" target="_blank">Leave a review</a>
+</footer>
+
+<script src="js/options.js"></script>
+
+</body>
+</html>
