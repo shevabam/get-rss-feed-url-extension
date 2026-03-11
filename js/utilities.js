@@ -8,6 +8,18 @@ function parseUrl(string) {
 }
 
 /**
+ * Get the review URL for the current browser (Chrome or Edge)
+ */
+function getReviewUrl() {
+    const id = chrome.runtime.id;
+    const isEdge = navigator.userAgent.includes('Edg/');
+    if (isEdge) {
+        return `https://microsoftedge.microsoft.com/addons/detail/${id}`;
+    }
+    return `https://chromewebstore.google.com/detail/${id}/reviews`;
+}
+
+/**
  * Truncate string in the middle
  */
 function truncate(fullStr, strLen, separator) {

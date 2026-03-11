@@ -25,7 +25,7 @@ function initTheme() {
 initTheme();
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('review-link').href = `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews`;
+    document.getElementById('review-link').href = getReviewUrl();
     document.getElementById('options-btn').addEventListener('click', function() {
         chrome.runtime.openOptionsPage();
     });
