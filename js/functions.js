@@ -198,6 +198,7 @@ const SERVICES_TO_CHECK = [
     'MediumTag',
     'Itchio',
     'MirrorXyz',
+    'Neocities',
 ];
 
 function checkIfUrlIsKnown(url) {
@@ -699,6 +700,30 @@ function getMirrorXyzRss(url) {
         datas.feeds.push({
             url: feed_url,
             title: subdomain
+        });
+    }
+
+    return datas;
+}
+
+
+
+/**
+ * Get RSS feed URL of a Neocities site (username.neocities.org)
+ */
+function getNeocitiesRss(url) {
+    let datas = { match: false, feeds: [] };
+
+    let regex = /^https?:\/\/([a-zA-Z0-9_-]+)\.neocities\.org(\/.*)?$/i;
+    let matches = url.match(regex);
+
+    if (matches) {
+        datas.match = true;
+        const username = matches[1];
+
+        datas.feeds.push({
+            url: 'https://neocities.org/site/' + username + '.rss',
+            title: username
         });
     }
 
