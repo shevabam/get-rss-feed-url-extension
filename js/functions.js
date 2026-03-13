@@ -217,7 +217,7 @@ function checkIfUrlIsKnown(url) {
     }
 
     if (match === true) {
-        return check.feeds;
+        return { feeds: check.feeds, continueCrawl: check.continueCrawl || false };
     } else {
         return false;
     }
@@ -236,9 +236,11 @@ function getFeedsURLs(url, callback) {
 
     let getFeedUrl = checkIfUrlIsKnown(url);
 
-    if (false !== getFeedUrl && getFeedUrl.length > 0) {
-        callback(getFeedUrl);
+    if (false !== getFeedUrl && !getFeedUrl.continueCrawl) {
+        callback(getFeedUrl.feeds);
     } else {
+        let initialFeeds = (false !== getFeedUrl && getFeedUrl.continueCrawl) ? getFeedUrl.feeds : [];
+
         getHtmlSource(url, (response) =>  {
             if (response != '') {
                 let linkTags = extractLinkTags(response);
@@ -247,7 +249,7 @@ function getFeedsURLs(url, callback) {
                 document.getElementById('rss-feed-url_response').innerHTML = linkTags;
             }
 
-            searchFeed(url, callback);
+            searchFeed(url, callback, initialFeeds);
         });
     }
 }
@@ -255,7 +257,7 @@ function getFeedsURLs(url, callback) {
 /**
  * Search RSS Feed in source code
  */
-async function searchFeed(url, callback) {
+async function searchFeed(url, callback, initialFeeds = []) {
     let feeds_urls = [];
 
     if (document.getElementById('rss-feed-url_response').innerHTML != '') {
@@ -309,6 +311,8 @@ async function searchFeed(url, callback) {
             feeds_urls.push(test_feed);
         }
     }
+
+    feeds_urls = initialFeeds.concat(feeds_urls);
 
     callback(feeds_urls);
 
@@ -712,7 +716,7 @@ function getMirrorXyzRss(url) {
  * Get RSS feed URL of a Neocities site (username.neocities.org)
  */
 function getNeocitiesRss(url) {
-    let datas = { match: false, feeds: [] };
+    let datas = { match: false, feeds: [], continueCrawl: true };
 
     let regex = /^https?:\/\/([a-zA-Z0-9_-]+)\.neocities\.org(\/.*)?$/i;
     let matches = url.match(regex);
