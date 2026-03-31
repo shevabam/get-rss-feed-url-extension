@@ -327,7 +327,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             chrome.tabs.create({ url: 'https://buymeacoffee.com/shevabam' });
             break;
         case "review":
-            chrome.tabs.create({ url: `https://chromewebstore.google.com/detail/${chrome.runtime.id}/reviews` });
+            chrome.tabs.create({ url: getReviewUrl() });
             break;
         case "projects":
         chrome.tabs.create({ url: `https://shevabam.fr` });
