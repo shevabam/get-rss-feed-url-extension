@@ -310,10 +310,6 @@ async function searchFeed(url, callback) {
     }
 
     callback(feeds_urls);
-
-    if (feeds_urls.length === 0) {
-        render('Unable to find feed');
-    }
 }
 
 
