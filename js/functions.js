@@ -728,8 +728,8 @@ function render(content) {
 /**
  * Copy to clipboard text
  */
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text);
+async function copyToClipboard(text) {
+    await navigator.clipboard.writeText(text);
 }
 
 

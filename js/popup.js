@@ -95,13 +95,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 3000);
 
                 // Hard timeout: stop waiting after 10s
+                let timedOut = false;
                 const hardTimer = setTimeout(() => {
+                    timedOut = true;
                     render('The search timed out. The page may be slow or blocking requests.');
                 }, 10000);
 
                 getFeedsURLs(url, function(feeds){
                     clearTimeout(slowTimer);
                     clearTimeout(hardTimer);
+                    if (timedOut) return;
 
                     // Send feed count to background to update badge
                     chrome.runtime.sendMessage({
@@ -127,14 +130,41 @@ document.addEventListener('DOMContentLoaded', function() {
                         const copyButtons = document.getElementsByClassName('copyLink');
 
                         for (let i = 0; i < copyButtons.length; i++) {
-                            copyButtons[i].addEventListener("click", function(e) {
+                            copyButtons[i].addEventListener("click", async function(e) {
                                 e.preventDefault();
                                 const button = this;
                                 const url = button.getAttribute('data-url');
                                 const btnText = button.querySelector('.btn-text');
 
+                                try {
+                                    await copyToClipboard(url);
+                                    // Visual feedback
+                                    button.classList.add('copied');
+                                    const originalText = btnText.textContent;
+                                    btnText.textContent = 'Copied!';
+
+                                    setTimeout(() => {
+                                        button.classList.remove('copied');
+                                        btnText.textContent = originalText;
+                                    }, 2000);
+                                } catch (err) {}
+                            });
+                        }
+
+                        // Copy to clipboard all feeds URLs
+                        const copyButtonAll = document.getElementById('copyAllLinks');
+
+                        copyButtonAll.addEventListener("click", async function(e) {
+                            e.preventDefault();
+                            const button = this;
+                            const links = document.getElementById('feeds-list').querySelectorAll('.feed-title.link');
+                            const text = Array.from(links).map(a => a.getAttribute('href')).join('\n');
+
+                            try {
+                                await copyToClipboard(text);
                                 // Visual feedback
                                 button.classList.add('copied');
+                                const btnText = button.querySelector('.btn-text');
                                 const originalText = btnText.textContent;
                                 btnText.textContent = 'Copied!';
 
@@ -142,32 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     button.classList.remove('copied');
                                     btnText.textContent = originalText;
                                 }, 2000);
-
-                                copyToClipboard(url);
-                            });
-                        }
-
-                        // Copy to clipboard all feeds URLs
-                        const copyButtonAll = document.getElementById('copyAllLinks');
-
-                        copyButtonAll.addEventListener("click", function(e) {
-                            e.preventDefault();
-                            const button = this;
-                            const links = document.getElementById('feeds-list').querySelectorAll('.feed-title.link');
-                            const text = Array.from(links).map(a => a.getAttribute('href')).join('\n');
-
-                            // Visual feedback
-                            button.classList.add('copied');
-                            const btnText = button.querySelector('.btn-text');
-                            const originalText = btnText.textContent;
-                            btnText.textContent = 'Copied!';
-
-                            setTimeout(() => {
-                                button.classList.remove('copied');
-                                btnText.textContent = originalText;
-                            }, 2000);
-
-                            copyToClipboard(text);
+                            } catch (err) {}
                         });
 
                     } else {
