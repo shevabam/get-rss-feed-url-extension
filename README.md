@@ -62,9 +62,16 @@ If you encounter a problem using Get RSS Feed URL extension, or would like to re
 
 # Privacy Policy
 
-The extension does not collect any user information or other information. Some data can be requested using the XHR API (only GET requests) in order to provide more context to retrieve a website's RSS feed.
+This extension does not collect, transmit, or sell any user data — nothing ever leaves your browser to the developer or to any third party.
 
-The extension does not store any data on the browser or on the computer.
+To find RSS feeds, the extension automatically fetches the HTML of the pages you visit and, when needed, tests a fixed list of common feed paths (e.g. `/feed`, `/rss.xml`) on the site you're on. These requests go directly from your browser to that site — never through a server we control.
+
+The extension stores the following locally on your device, and syncs it through your own Chrome account if Chrome Sync is enabled:
+
+* a per-site cache of feed-detection results (kept 24 hours when feeds are found, 7 days otherwise), used to avoid re-scanning pages you've already visited;
+* your preferences: light/dark theme, whether the feed-count badge is shown, and the list of sites you've chosen to ignore.
+
+None of this is ever sent anywhere outside your own browser / Chrome account.
 
 
 
@@ -131,7 +138,14 @@ Si vous rencontrez un problème avec l'extension Get RSS Feed URL, ou que vous s
 
 # Politique de confidentialité
 
-L'extension ne collecte aucune information sur l'utilisateur ou d'autres informations. Certaines données peuvent être demandées à l'aide de l'API XHR (uniquement les requêtes GET) afin de fournir plus de contexte pour récupérer le flux RSS d'un site Internet.
+Cette extension ne collecte, ne transmet et ne vend aucune donnée utilisateur — rien ne quitte jamais votre navigateur vers le développeur ou vers un tiers.
 
-L'extension ne stocke aucune donnée sur le navigateur ou sur l'ordinateur. 
+Pour trouver les flux RSS, l'extension récupère automatiquement le code HTML des pages que vous visitez et, si nécessaire, teste une liste fixe de chemins de flux courants (ex. `/feed`, `/rss.xml`) sur le site consulté. Ces requêtes partent directement de votre navigateur vers ce site — jamais via un serveur que nous contrôlons.
+
+L'extension stocke localement sur votre appareil les éléments suivants, synchronisés via votre propre compte Chrome si la synchronisation Chrome est activée :
+
+* un cache par site des résultats de détection de flux (conservé 24 heures si des flux sont trouvés, 7 jours sinon), utilisé pour éviter de rescanner les pages déjà visitées ;
+* vos préférences : thème clair/sombre, affichage ou non du badge de comptage de flux, et la liste des sites que vous avez choisi d'ignorer.
+
+Rien de tout cela n'est jamais envoyé en dehors de votre navigateur ou de votre compte Chrome.
 
