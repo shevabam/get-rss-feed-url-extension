@@ -1,25 +1,13 @@
-const CACHE_PREFIX = 'getrss_cache_';
+// CACHE_PREFIX is defined in utilities.js (loaded before this script), shared with background.js
 
-// Theme management (same pattern as popup.js)
-function initTheme() {
-    chrome.storage.sync.get(['theme'], function(result) {
-        if (result.theme === 'dark') {
-            document.body.classList.add('dark-theme');
-        }
-    });
-
-    document.getElementById('theme-toggle').addEventListener('click', function() {
-        const isDark = document.body.classList.toggle('dark-theme');
-        chrome.storage.sync.set({ theme: isDark ? 'dark' : 'light' });
-    });
-}
-
+// Initialize theme on page load (shared logic in utilities.js)
 initTheme();
 
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('review-link').href = getReviewUrl();
     initBadgeToggle();
     initClearCache();
+    initAddSite();
     renderIgnoredSites();
 });
 
@@ -29,7 +17,7 @@ function initBadgeToggle() {
         checkbox.checked = result.showBadge !== false;
     });
     checkbox.addEventListener('change', function() {
-        chrome.storage.sync.set({ showBadge: this.checked });
+        setSyncStorage({ showBadge: this.checked });
     });
 }
 
@@ -55,11 +43,63 @@ function initClearCache() {
     });
 }
 
+/**
+ * Manually add a domain to the ignored list from the Options page (previously the list
+ * could only be edited by using the popup's "Ignore this site" button on a specific tab).
+ */
+function initAddSite() {
+    const input = document.getElementById('add-site-input');
+    const btn = document.getElementById('add-site-btn');
+
+    function addSite() {
+        const raw = input.value.trim();
+        if (!raw) return;
+
+        // Accept a bare domain ("example.com") as well as a full URL.
+        let hostname;
+        try {
+            hostname = new URL(raw.includes('://') ? raw : 'https://' + raw).hostname;
+        } catch (e) {
+            input.setCustomValidity('Enter a valid domain, e.g. example.com');
+            input.reportValidity();
+            return;
+        }
+        input.setCustomValidity('');
+        hostname = normalizeHostname(hostname);
+
+        chrome.storage.sync.get(['ignoredSites'], function(result) {
+            const sites = result.ignoredSites || [];
+            if (findIgnoredEntries(hostname, sites).length > 0) {
+                // Already ignored (directly or via a parent domain) — nothing to do.
+                input.value = '';
+                return;
+            }
+
+            sites.push(hostname);
+            setSyncStorage({ ignoredSites: sites }, function() {
+                input.value = '';
+                renderIgnoredSites();
+            });
+        });
+    }
+
+    btn.addEventListener('click', addSite);
+    input.addEventListener('input', function() {
+        input.setCustomValidity('');
+    });
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addSite();
+        }
+    });
+}
+
 function renderIgnoredSites() {
     const container = document.getElementById('ignored-sites-container');
 
     chrome.storage.sync.get(['ignoredSites'], function(result) {
-        const sites = result.ignoredSites || [];
+        const sites = (result.ignoredSites || []).slice().sort((a, b) => a.localeCompare(b));
         container.innerHTML = '';
 
         if (sites.length === 0) {
@@ -78,7 +118,13 @@ function renderIgnoredSites() {
         clearAllBtn.className = 'action-btn danger';
         clearAllBtn.textContent = 'Remove All';
         clearAllBtn.addEventListener('click', function() {
-            chrome.storage.sync.set({ ignoredSites: [] }, renderIgnoredSites);
+            const confirmed = confirm(
+                sites.length === 1
+                    ? 'Remove 1 site from the ignored list?'
+                    : `Remove all ${sites.length} sites from the ignored list?`
+            );
+            if (!confirmed) return;
+            setSyncStorage({ ignoredSites: [] }, renderIgnoredSites);
         });
 
         clearAllRow.appendChild(clearAllBtn);
@@ -112,7 +158,7 @@ function renderIgnoredSites() {
             removeBtn.addEventListener('click', function() {
                 chrome.storage.sync.get(['ignoredSites'], function(r) {
                     const updated = (r.ignoredSites || []).filter(s => s !== site);
-                    chrome.storage.sync.set({ ignoredSites: updated }, renderIgnoredSites);
+                    setSyncStorage({ ignoredSites: updated }, renderIgnoredSites);
                 });
             });
 

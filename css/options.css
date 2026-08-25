@@ -18,7 +18,27 @@
     --radius-lg: 12px;
 }
 
-/* === Dark Theme === */
+/* === Dark Theme ===
+   Follow the OS preference by default (no flash for users who never touched the toggle);
+   an explicit choice (`.dark-theme` / `.light-theme`, set once js/utilities.js reads the
+   stored preference) always overrides the OS default. */
+@media (prefers-color-scheme: dark) {
+    /* Plain :root — the theme classes below live on <body>, and body.light-theme
+       (element + class) is more specific than bare :root, so it overrides this block
+       on its own whenever the user has explicitly chosen light. */
+    :root {
+        --background: #1a1a1a;
+        --surface: #2d2d2d;
+        --text-primary: #e8e8e8;
+        --text-secondary: #b0b0b0;
+        --text-muted: #808080;
+        --border-color: #404040;
+        --primary-light: #3d2e00;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    }
+}
+
 body.dark-theme {
     --background: #1a1a1a;
     --surface: #2d2d2d;
@@ -29,6 +49,18 @@ body.dark-theme {
     --primary-light: #3d2e00;
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
     --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+}
+
+body.light-theme {
+    --background: #ffffff;
+    --surface: #f8f9fa;
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-muted: #adb5bd;
+    --border-color: #e9ecef;
+    --primary-light: #fff3e0;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
 }
 
 /* === Base === */
@@ -119,6 +151,18 @@ header h1 {
     transform: rotate(180deg);
 }
 
+/* Follow the OS by default, same reasoning as the color tokens above */
+@media (prefers-color-scheme: dark) {
+    .theme-toggle .sun-icon {
+        opacity: 0;
+        transform: rotate(180deg);
+    }
+    .theme-toggle .moon-icon {
+        opacity: 1;
+        transform: rotate(0deg);
+    }
+}
+
 body.dark-theme .theme-toggle .sun-icon {
     opacity: 0;
     transform: rotate(180deg);
@@ -127,6 +171,16 @@ body.dark-theme .theme-toggle .sun-icon {
 body.dark-theme .theme-toggle .moon-icon {
     opacity: 1;
     transform: rotate(0deg);
+}
+
+body.light-theme .theme-toggle .sun-icon {
+    opacity: 1;
+    transform: rotate(0deg);
+}
+
+body.light-theme .theme-toggle .moon-icon {
+    opacity: 0;
+    transform: rotate(180deg);
 }
 
 /* === Main === */
@@ -275,6 +329,29 @@ main {
 }
 
 /* === Ignored Sites === */
+.add-site-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.add-site-input {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+}
+
+.add-site-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
 .empty-list-text {
     color: var(--text-muted);
     font-size: 13px;

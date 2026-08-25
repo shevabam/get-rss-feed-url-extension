@@ -1,27 +1,4 @@
-// Theme management
-function initTheme() {
-    // Load saved theme preference
-    chrome.storage.sync.get(['theme'], function(result) {
-        const isDark = result.theme === 'dark';
-        if (isDark) {
-            document.body.classList.add('dark-theme');
-        }
-    });
-
-    // Setup theme toggle button
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', function() {
-            const isDark = document.body.classList.toggle('dark-theme');
-            const theme = isDark ? 'dark' : 'light';
-
-            // Save theme preference
-            chrome.storage.sync.set({ theme: theme });
-        });
-    }
-}
-
-// Initialize theme on page load
+// Initialize theme on page load (shared logic in utilities.js)
 initTheme();
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -52,35 +29,52 @@ document.addEventListener('DOMContentLoaded', function() {
         // Check ignored sites list, then proceed
         chrome.storage.sync.get(['ignoredSites'], function(result) {
             const ignoredSites = result.ignoredSites || [];
-            const isIgnored = hostname !== null && ignoredSites.includes(hostname);
+            const isIgnored = hostname !== null && isHostnameIgnored(hostname, ignoredSites);
+
+            // Set when the user ignores the site while a feed search is still in flight, so the
+            // search's callback (which can resolve later) doesn't overwrite the "Site Ignored"
+            // UI/badge it just set with stale results.
+            let searchAborted = false;
 
             if (isIgnored) {
                 ignoreBtn.classList.add('is-ignored');
                 ignoreBtn.title = 'Enable RSS for this site';
+                ignoreBtn.setAttribute('aria-label', 'Enable RSS for this site');
                 renderIgnoredState(hostname);
             }
 
             // Setup ignore button click handler
             if (hostname) {
                 ignoreBtn.addEventListener('click', function() {
+                    // Disable while the write is in flight — otherwise a second click landing
+                    // before the first one's storage write resolves reads the pre-write state
+                    // and silently undoes the first click (e.g. add then immediately remove).
+                    if (ignoreBtn.disabled) return;
+                    ignoreBtn.disabled = true;
+                    searchAborted = true;
+
                     chrome.storage.sync.get(['ignoredSites'], function(result) {
                         let sites = result.ignoredSites || [];
-                        const idx = sites.indexOf(hostname);
+                        // Not just an exact match: a broader entry (e.g. "example.com") may
+                        // already cover this hostname (e.g. "blog.example.com").
+                        const matching = findIgnoredEntries(hostname, sites);
 
-                        if (idx === -1) {
-                            // Add to ignored list
-                            sites.push(hostname);
-                            chrome.storage.sync.set({ ignoredSites: sites }, function() {
+                        if (matching.length === 0) {
+                            // Add to ignored list (normalized: "www." doesn't create a separate entry)
+                            sites.push(normalizeHostname(hostname));
+                            setSyncStorage({ ignoredSites: sites }, function() {
                                 chrome.runtime.sendMessage({ action: "updateBadge", tabId: tab.id, feedCount: 0 });
                                 ignoreBtn.classList.add('is-ignored');
                                 ignoreBtn.title = 'Enable RSS for this site';
+                                ignoreBtn.setAttribute('aria-label', 'Enable RSS for this site');
+                                ignoreBtn.disabled = false;
                                 renderIgnoredState(hostname);
                             });
                         } else {
-                            // Remove from ignored list
-                            sites.splice(idx, 1);
-                            chrome.storage.sync.set({ ignoredSites: sites }, function() {
-                                location.reload();
+                            // Remove whichever entries currently cause this site to be ignored
+                            sites = sites.filter(s => !matching.includes(s));
+                            setSyncStorage({ ignoredSites: sites }, function() {
+                                location.reload(); // re-enables the button as a side effect
                             });
                         }
                     });
@@ -98,19 +92,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 let timedOut = false;
                 const hardTimer = setTimeout(() => {
                     timedOut = true;
-                    render('The search timed out. The page may be slow or blocking requests.');
+                    renderMessage('The search timed out. The page may be slow or blocking requests.');
                 }, 10000);
 
                 getFeedsURLs(url, function(feeds){
                     clearTimeout(slowTimer);
                     clearTimeout(hardTimer);
-                    if (timedOut) return;
+                    if (timedOut || searchAborted) return;
 
-                    // Send feed count to background to update badge
+                    // Send feed count to background to update badge. Also include `url` so the
+                    // service worker can refresh its cache with this result — the popup's
+                    // detection is more thorough (it also runs the suffix fallback), so it
+                    // should win over whatever the worker had cached (Finding 7).
                     chrome.runtime.sendMessage({
                         action: "updateBadge",
                         tabId: tab.id,
-                        feedCount: feeds.length
+                        feedCount: feeds.length,
+                        url: url
                     });
 
                     if (feeds.length > 0) {
@@ -118,7 +116,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         feedsList.id = 'feeds-list';
 
                         for (let i = 0; i < feeds.length; i++) {
-                            feedsList.appendChild(createFeedCard(feeds[i], tab.title));
+                            feedsList.appendChild(createFeedCard(feeds[i]));
                         }
 
                         const feedsEl = document.getElementById('feeds');
@@ -227,9 +225,9 @@ function renderIgnoredState(hostname) {
     btn.addEventListener('click', function() {
         chrome.storage.sync.get(['ignoredSites'], function(result) {
             let sites = result.ignoredSites || [];
-            const idx = sites.indexOf(hostname);
-            if (idx !== -1) sites.splice(idx, 1);
-            chrome.storage.sync.set({ ignoredSites: sites }, function() {
+            const matching = findIgnoredEntries(hostname, sites);
+            sites = sites.filter(s => !matching.includes(s));
+            setSyncStorage({ ignoredSites: sites }, function() {
                 location.reload();
             });
         });
@@ -277,7 +275,7 @@ function createSVGIcon() {
 /**
  * Create a feed card DOM element (no innerHTML with user data)
  */
-function createFeedCard(feed, tabTitle) {
+function createFeedCard(feed) {
     const feedType = getFeedType(feed.type || feed.url);
 
     const card = document.createElement('div');
@@ -293,7 +291,6 @@ function createFeedCard(feed, tabTitle) {
     titleLink.className = 'feed-title link';
     titleLink.href = feed.url;
     titleLink.title = feed.title;
-    titleLink.setAttribute('data-tabtitle', tabTitle);
     titleLink.target = '_blank';
     titleLink.textContent = feed.title;
     titleRow.appendChild(titleLink);

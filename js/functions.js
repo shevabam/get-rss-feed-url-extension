@@ -6,7 +6,12 @@ const IGNORED_PROTOCOLS = [
     "vivaldi:",
     "edge:",
     "chrome-devtools:",
-    "devtools:"
+    "devtools:",
+    "file:",
+    "data:",
+    "blob:",
+    "view-source:",
+    "ftp:"
 ];
 
 const FEED_TYPES = [
@@ -50,11 +55,19 @@ const FETCH_TIMEOUT = 5000;
 const DEFAULT_USER_AGENT = navigator.userAgent;
 
 /**
- * Fetch with timeout and default User-Agent
+ * Fetch with timeout and default User-Agent.
+ * Accepts an optional external `options.signal` (e.g. to cancel sibling suffix probes once one
+ * succeeds) — it is composed with the timeout's own AbortController rather than overridden.
  */
 async function fetchWithTimeout(url, options = {}, timeout = FETCH_TIMEOUT) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    const externalSignal = options.signal;
+    if (externalSignal) {
+        if (externalSignal.aborted) controller.abort();
+        else externalSignal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
 
     // Add default User-Agent if not provided
     const headers = {
@@ -103,11 +116,11 @@ function getHtmlSource(url, callback) {
             if (data) {
                 callback(data);
             } else {
-                render('Unable to find feed');
+                renderMessage('Unable to find feed');
             }
         })
         .catch(function(error) {
-            render('Error: ' + error.message);
+            renderMessage('Error: ' + error.message);
         });
 }
 
@@ -140,28 +153,58 @@ function isValidFeedContent(content) {
 }
 
 /**
- * Try to find a feed URL by testing common suffixes (for service worker)
+ * Test FEED_URL_SUFFIXES against `origin` with a bounded concurrency pool instead of firing
+ * all of them at once (which multiplies the request volume sent to a single site by
+ * FEED_URL_SUFFIXES.length on every cache miss). Suffixes are assigned to workers in priority
+ * order; as soon as one probe succeeds, in-flight sibling requests are aborted.
+ *
+ * @param {string} origin
+ * @param {(feedUrl: string, signal: AbortSignal) => Promise<any>} probe - resolves with a
+ *   truthy result on a match, or with a falsy value / rejection otherwise.
+ * @param {number} concurrency
+ * @returns {Promise<any|null>}
  */
-async function tryToFindFeedCount(url) {
-    const urlData = parseUrl(url);
+async function probeFeedSuffixes(origin, probe, concurrency = 3) {
+    const controller = new AbortController();
+    let nextIndex = 0;
+    let result = null;
 
-    for (const suffix of FEED_URL_SUFFIXES) {
-        try {
-            const feedUrl = urlData.origin + suffix;
-            const response = await fetchWithTimeout(feedUrl, { method: 'get' });
-
-            if (response.ok) {
-                const content = await response.text();
-                if (isValidFeedContent(content)) {
-                    return 1;
+    async function worker() {
+        while (result === null && nextIndex < FEED_URL_SUFFIXES.length) {
+            const feedUrl = origin + FEED_URL_SUFFIXES[nextIndex++];
+            try {
+                const value = await probe(feedUrl, controller.signal);
+                if (value && result === null) {
+                    result = value;
+                    controller.abort(); // cancel sibling requests still in flight
                 }
+            } catch (error) {
+                // Try the next suffix
             }
-        } catch (error) {
-            // Continue to next suffix
         }
     }
 
-    return 0;
+    const workerCount = Math.min(concurrency, FEED_URL_SUFFIXES.length);
+    await Promise.all(Array.from({ length: workerCount }, worker));
+    return result;
+}
+
+/**
+ * Try to find a feed URL by testing common suffixes (for service worker).
+ */
+async function tryToFindFeedCount(url) {
+    const origin = parseUrl(url).origin;
+    if (!/^https?:\/\//i.test(origin)) return 0; // skip file:/data:/opaque origins etc.
+
+    const found = await probeFeedSuffixes(origin, async (feedUrl, signal) => {
+        const response = await fetchWithTimeout(feedUrl, { method: 'get', signal });
+        if (!response.ok) return false;
+
+        const content = await response.text();
+        return isValidFeedContent(content);
+    });
+
+    return found ? 1 : 0;
 }
 
 /**
@@ -169,13 +212,23 @@ async function tryToFindFeedCount(url) {
  */
 function countFeedsFromHtml(html) {
     const linkTags = extractLinkTags(html);
+    const seenHrefs = new Set();
     let count = 0;
 
     for (const tag of linkTags) {
         const typeMatch = tag.match(/type=['"]([^'"]+)['"]/i);
-        if (typeMatch && FEED_TYPES.includes(typeMatch[1].toLowerCase())) {
-            count++;
+        if (!typeMatch || !FEED_TYPES.includes(normalizeFeedType(typeMatch[1]))) continue;
+
+        // Dedupe identical <link> tags (same raw href) so the badge count matches the popup's
+        // deduped list, e.g. a page that emits the same feed link twice by mistake.
+        const hrefMatch = tag.match(/href=['"]([^'"]*)['"]/i);
+        const href = hrefMatch ? hrefMatch[1] : null;
+        if (href) {
+            if (seenHrefs.has(href)) continue;
+            seenHrefs.add(href);
         }
+
+        count++;
     }
 
     return count;
@@ -229,8 +282,10 @@ function checkIfUrlIsKnown(url) {
 function getFeedsURLs(url, callback) {
 
     if (IGNORED_PROTOCOLS.includes(parseUrl(url).protocol)) {
-        render('Unable to find feed');
-        return false;
+        // Always invoke the callback (even for ignored protocols) so callers relying on it
+        // (e.g. popup.js's watchdog timers) don't wait indefinitely for a response.
+        callback([]);
+        return;
     }
 
     let getFeedUrl = checkIfUrlIsKnown(url);
@@ -246,7 +301,9 @@ function getFeedsURLs(url, callback) {
                 document.getElementById('rss-feed-url_response').innerHTML = linkTags;
             }
 
-            searchFeed(url, callback);
+            // searchFeed is async — make sure callback is still invoked if it throws
+            // (e.g. an unexpected error), so callers waiting on it never hang.
+            searchFeed(url, callback).catch(() => callback([]));
         });
     }
 }
@@ -264,28 +321,18 @@ async function searchFeed(url, callback) {
 
         for (let i = 0; i < links.length; i++) {
 
-            if (links[i].hasAttribute('type') && FEED_TYPES.indexOf(links[i].getAttribute('type')) !== -1) {
+            if (links[i].hasAttribute('type') && FEED_TYPES.includes(normalizeFeedType(links[i].getAttribute('type')))) {
 
-                let feed_url = links[i].getAttribute('href');
+                const href = links[i].getAttribute('href');
+                if (!href) continue; // <link type="..."> with no href — nothing to resolve
 
-                // If feed's url starts with "//"
-                if (feed_url.startsWith('//')) {
-                    feed_url = "https:" + feed_url;
-                }
-                // If feed's url starts with "/"
-                else if (feed_url.startsWith('/')) {
-                    feed_url = url.split('/')[0] + '//' + url.split('/')[2] + feed_url;
-                }
-                // If feed's url starts with http or https
-                else if (/^(http|https):\/\//i.test(feed_url)) {
-                    feed_url = feed_url;
-                }
-                // If feed's has no slash
-                else if (!feed_url.match(/\//)) {
-                    feed_url = url.substr(0, url.lastIndexOf("/")) + '/' + feed_url;
-                }
-                else {
-                    feed_url = url + "/" + feed_url.replace(/^\//g, '');
+                let feed_url;
+                try {
+                    // Let the platform resolve relative/protocol-relative/absolute URLs correctly
+                    // (handles query strings, fragments, "../", trailing slashes, etc.)
+                    feed_url = new URL(href, url).href;
+                } catch (e) {
+                    continue; // malformed href, skip this entry
                 }
 
                 let feed = {
@@ -309,10 +356,29 @@ async function searchFeed(url, callback) {
         }
     }
 
+    // A page can emit the same feed URL more than once (e.g. duplicate <link> tags) — dedupe
+    // so the popup doesn't show/copy the same feed twice and the badge count stays accurate.
+    const seenUrls = new Set();
+    feeds_urls = feeds_urls.filter(function(feed) {
+        if (seenUrls.has(feed.url)) return false;
+        seenUrls.add(feed.url);
+        return true;
+    });
+
     callback(feeds_urls);
 }
 
 
+
+/**
+ * Get "origin + pathname" from a URL, without its query string or fragment, and with any
+ * trailing slash trimmed. Used by the service matchers below so a suffix like '.rss' is never
+ * appended after a query string/fragment (which produces a non-existent feed URL).
+ */
+function getUrlBase(url) {
+    const u = new URL(url);
+    return u.origin + u.pathname.replace(/\/+$/, '');
+}
 
 /**
  * Get RSS feed URL of Youtube channel or user
@@ -399,15 +465,12 @@ function getRedditRootRss(url) {
     if (has_match) {
         datas.match = true;
 
-        let feed_url = !url.endsWith('/') ? url+'/' : url;
-        feed_url += '.rss';
-
-        if (feed_url) {
-            datas.feeds.push({
-                url: feed_url,
-                title: feed_url
-            });
-        }
+        // Reddit's homepage feed is "/.rss" (note the leading dot), not just ".rss"
+        const feed_url = getUrlBase(url) + '/.rss';
+        datas.feeds.push({
+            url: feed_url,
+            title: feed_url
+        });
     }
 
     return datas;
@@ -425,15 +488,13 @@ function getRedditSubRss(url) {
     if (has_match) {
         datas.match = true;
 
-        let feed_url = url.endsWith('/') ? url.slice(0, -1) : url;
-        feed_url += '.rss';
-
-        if (feed_url) {
-            datas.feeds.push({
-                url: feed_url,
-                title: feed_url
-            });
-        }
+        // getUrlBase() drops any query string/fragment (e.g. "?t=week", "#hot") so it never
+        // ends up appended before ".rss", which would produce a non-existent feed URL.
+        const feed_url = getUrlBase(url) + '.rss';
+        datas.feeds.push({
+            url: feed_url,
+            title: feed_url
+        });
     }
 
     return datas;
@@ -451,15 +512,11 @@ function getRedditUserRss(url) {
     if (has_match) {
         datas.match = true;
 
-        let feed_url = url.endsWith('/') ? url.slice(0, -1) : url;
-        feed_url += '.rss';
-
-        if (feed_url) {
-            datas.feeds.push({
-                url: feed_url,
-                title: feed_url
-            });
-        }
+        const feed_url = getUrlBase(url) + '.rss';
+        datas.feeds.push({
+            url: feed_url,
+            title: feed_url
+        });
     }
 
     return datas;
@@ -477,15 +534,11 @@ function getRedditPostCommentsRss(url) {
     if (has_match) {
         datas.match = true;
 
-        let feed_url = url.endsWith('/') ? url.slice(0, -1) : url;
-        feed_url += '.rss';
-
-        if (feed_url) {
-            datas.feeds.push({
-                url: feed_url,
-                title: feed_url
-            });
-        }
+        const feed_url = getUrlBase(url) + '.rss';
+        datas.feeds.push({
+            url: feed_url,
+            title: feed_url
+        });
     }
 
     return datas;
@@ -498,25 +551,34 @@ function getRedditPostCommentsRss(url) {
 function getKickstarterRss(url) {
     let datas = { match: false, feeds: [] };
 
-    let regex = /^(http(s)?:\/\/)?((w){3}.)?kickstarter\.com/i;
+    // Require an actual project path (/projects/<creator>/<slug>) — matching the bare domain or
+    // any other Kickstarter page (e.g. /discover/advanced) previously invented a phantom feed.
+    let regex = /^(http(s)?:\/\/)?((w){3}.)?kickstarter\.com\/projects\/([^\/?#]+)\/([^\/?#]+)/i;
     let has_match = regex.test(url);
 
     if (has_match) {
         datas.match = true;
 
-        let feed_url = url.endsWith('/') ? url.slice(0, -1) : url;
-        feed_url = feed_url.split('?')[0] + '/posts.atom';
+        const u = new URL(url);
+        const segments = u.pathname.split('/').filter(Boolean); // ['projects', creator, slug, ...]
+        const feed_url = u.origin + '/' + segments.slice(0, 3).join('/') + '/posts.atom';
 
-        if (feed_url) {
-            datas.feeds.push({
-                url: feed_url,
-                title: feed_url
-            });
-        }
+        datas.feeds.push({
+            url: feed_url,
+            title: feed_url
+        });
     }
 
     return datas;
 }
+
+// Vimeo site-wide pages that are not a username/channel — matching one of these as a single
+// path segment previously invented a phantom "/videos/rss" feed (e.g. vimeo.com/log_in).
+const VIMEO_RESERVED_PATHS = [
+    'log_in', 'join', 'upload', 'upgrade', 'watch', 'search', 'settings',
+    'features', 'about', 'help', 'stats', 'subscriptions', 'manage', 'create',
+    'pricing', 'blog', 'developer', 'enterprise'
+];
 
 /**
  * Get RSS feed URL of vimeo
@@ -528,11 +590,16 @@ function getVimeoRss(url) {
     let has_match = regex.test(url);
 
     if (has_match) {
-        datas.match = true;
+        const pathSegments = new URL(url).pathname.split('/').filter(Boolean);
+        const firstSegment = (pathSegments[0] || '').toLowerCase();
+        const isSingleReservedPage = pathSegments.length === 1 && VIMEO_RESERVED_PATHS.includes(firstSegment);
 
-        let feed_url = url.endsWith('/videos') ? url.replace(/\/videos$/, '') + '/rss' : url + '/videos/rss';
+        if (!isSingleReservedPage) {
+            datas.match = true;
 
-        if (feed_url) {
+            const base = getUrlBase(url).replace(/\/videos$/i, '');
+            const feed_url = base + '/videos/rss';
+
             datas.feeds.push({
                 url: feed_url,
                 title: feed_url
@@ -542,6 +609,15 @@ function getVimeoRss(url) {
 
     return datas;
 }
+
+// GitHub top-level paths that are site pages, not usernames — matching one of these previously
+// invented phantom repo/user feeds (e.g. github.com/settings/profile -> 3 fabricated feeds).
+const GITHUB_RESERVED_PATHS = [
+    'settings', 'orgs', 'features', 'sponsors', 'marketplace', 'topics',
+    'collections', 'apps', 'notifications', 'pulls', 'issues', 'dashboard',
+    'explore', 'trending', 'watching', 'stars', 'new', 'login', 'join',
+    'about', 'pricing', 'contact', 'security', 'site', 'support', 'search'
+];
 
 /**
  * Get RSS feed URL of Github repo
@@ -553,15 +629,17 @@ function getGithubRepoRss(url) {
     let matches = url.match(regex);
 
     if (matches) {
-        datas.match = true;
-        let repoUrl = matches[0].replace(/\/$/, ''); // Remove trailing slash
+        const u = new URL(url);
+        const segments = u.pathname.split('/').filter(Boolean); // ['user', 'repo', ...]
 
-        const url = new URL(repoUrl);
-        baseRepoUrl = url.origin + '/' + url.pathname.split('/').slice(1, 3).join('/');
+        if (segments.length >= 2 && !GITHUB_RESERVED_PATHS.includes(segments[0].toLowerCase())) {
+            datas.match = true;
+            const baseRepoUrl = u.origin + '/' + segments.slice(0, 2).join('/');
 
-        datas.feeds.push({ url: baseRepoUrl + '/releases.atom', title: 'Repo releases' });
-        datas.feeds.push({ url: baseRepoUrl + '/commits.atom', title: 'Repo commits' });
-        datas.feeds.push({ url: baseRepoUrl + '/tags.atom', title: 'Repo tags' });
+            datas.feeds.push({ url: baseRepoUrl + '/releases.atom', title: 'Repo releases' });
+            datas.feeds.push({ url: baseRepoUrl + '/commits.atom', title: 'Repo commits' });
+            datas.feeds.push({ url: baseRepoUrl + '/tags.atom', title: 'Repo tags' });
+        }
     }
 
     return datas;
@@ -577,9 +655,14 @@ function getGithubUserRss(url) {
     let matches = url.match(regex);
 
     if (matches) {
-        datas.match = true;
-        let userUrl = matches[0].replace(/\/$/, ''); // Remove trailing slash
-        datas.feeds.push({ url: userUrl + '.atom', title: 'User activity' });
+        const u = new URL(url);
+        const segments = u.pathname.split('/').filter(Boolean);
+
+        if (segments.length === 1 && !GITHUB_RESERVED_PATHS.includes(segments[0].toLowerCase())) {
+            datas.match = true;
+            const userUrl = u.origin + '/' + segments[0];
+            datas.feeds.push({ url: userUrl + '.atom', title: 'User activity' });
+        }
     }
 
     return datas;
@@ -704,25 +787,35 @@ function getMirrorXyzRss(url) {
 
 
 /**
- * Prints message in #feeds
+ * Prints trusted, internally-generated HTML markup in #feeds.
+ * Never pass user/network-controlled text to this function — use renderMessage() instead.
  */
-function render(content) {
-    // If it's a simple text message, wrap it in empty state
-    if (typeof content === 'string' && !content.includes('<')) {
-        const html = `
-            <div class="empty-state">
-                <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    <circle cx="12" cy="16" r="1" fill="currentColor"/>
-                </svg>
-                <div class="empty-state-title">${content}</div>
-            </div>
-        `;
-        document.getElementById('feeds').innerHTML = html;
-    } else {
-        document.getElementById('feeds').innerHTML = content;
-    }
+function render(html) {
+    document.getElementById('feeds').innerHTML = html;
+}
+
+/**
+ * Prints a plain-text status message in #feeds (empty state style), safely escaped via
+ * textContent — no innerHTML involved, so the text can never be interpreted as markup.
+ */
+function renderMessage(text) {
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('class', 'empty-state-icon');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('fill', 'none');
+    icon.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    icon.innerHTML = '<circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M12 8V12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16" r="1" fill="currentColor"/>';
+
+    const title = document.createElement('div');
+    title.className = 'empty-state-title';
+    title.textContent = text;
+
+    const container = document.createElement('div');
+    container.className = 'empty-state';
+    container.appendChild(icon);
+    container.appendChild(title);
+
+    document.getElementById('feeds').replaceChildren(container);
 }
 
 /**
@@ -734,55 +827,29 @@ async function copyToClipboard(text) {
 
 
 /**
- * Attempt to find an RSS feed URL by providing a suffix
+ * Attempt to find an RSS feed URL by providing a suffix (popup fallback).
+ * Uses the same bounded concurrency pool as tryToFindFeedCount() — see probeFeedSuffixes().
  */
 async function tryToGetFeedURL(tabUrl) {
-    let url_datas = parseUrl(tabUrl);
-    let feed = null;
-    let isFound = false;
+    const origin = parseUrl(tabUrl).origin;
+    if (!/^https?:\/\//i.test(origin)) return null; // skip file:/data:/opaque origins etc.
 
-    for (let t = 0; t < FEED_URL_SUFFIXES.length; t++) {
-        if (isFound === false) {
-            let feed_url = url_datas.origin + FEED_URL_SUFFIXES[t];
+    return await probeFeedSuffixes(origin, async (feed_url, signal) => {
+        const response = await fetchWithTimeout(feed_url, { method: 'get', signal });
 
-            try {
-                let response = await fetchWithTimeout(feed_url, { method: 'get' });
-
-                if (response.ok && response.status >= 200 && response.status < 300) {
-                    let urlContent = await response.text();
-
-                    let oParser = new DOMParser();
-                    let oDOM = oParser.parseFromString(urlContent, "application/xml");
-
-                    let getRssTag = oDOM.getElementsByTagName('rss');
-                    let getFeedTag = oDOM.getElementsByTagName('feed');
-
-                    if (getRssTag.length > 0 || getFeedTag.length > 0) {
-
-                        if (getRssTag.length > 0) {
-                            var getChannelTag = getRssTag['0'].getElementsByTagName('channel');
-                        } else if (getFeedTag.length > 0) {
-                            var getChannelTag = getFeedTag['0'];
-                        }
-
-                        if (getChannelTag !== false) {
-                            isFound = true;
-
-                            feed = {
-                                type: '',
-                                url: feed_url,
-                                title: feed_url
-                            };
-
-                            return feed;
-                        }
-                    }
-                }
-            } catch (error) {
-                // Continue to next suffix
-            }
+        if (!response.ok || response.status < 200 || response.status >= 300) {
+            return null;
         }
-    }
 
-    return feed;
+        const urlContent = await response.text();
+        const oParser = new DOMParser();
+        const oDOM = oParser.parseFromString(urlContent, "application/xml");
+
+        const hasRssTag = oDOM.getElementsByTagName('rss').length > 0;
+        const hasFeedTag = oDOM.getElementsByTagName('feed').length > 0;
+
+        if (!hasRssTag && !hasFeedTag) return null;
+
+        return { type: '', url: feed_url, title: feed_url };
+    });
 }

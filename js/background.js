@@ -13,9 +13,6 @@ const CACHE_EXPIRATION = 24 * 60 * 60 * 1000;
 // Cache expiration time for negative results (no feeds found) - 7 days
 const CACHE_EXPIRATION_NEGATIVE = 7 * 24 * 60 * 60 * 1000;
 
-// Cache key prefix
-const CACHE_PREFIX = 'getrss_cache_';
-
 /**
  * Generate cache key for a given URL
  */
@@ -127,29 +124,40 @@ async function updateBadge(tabId, url) {
 
     const { ignoredSites = [], showBadge = true } = await chrome.storage.sync.get(['ignoredSites', 'showBadge']);
 
+    // Badge display is off — stop here, before touching the cache or the network at all.
+    // (Previously this was only checked when actually setting the badge text, so turning the
+    // badge off did not stop the page fetch + suffix probing from happening on every page.)
+    if (!showBadge) {
+        chrome.action.setBadgeText({ text: "", tabId: tabId });
+        return;
+    }
+
     // Skip sites the user has chosen to ignore
     try {
-        if (ignoredSites.includes(new URL(url).hostname)) {
+        if (isHostnameIgnored(new URL(url).hostname, ignoredSites)) {
             chrome.action.setBadgeText({ text: "", tabId: tabId });
             return;
         }
-    } catch(e) {}
+    } catch (e) {
+        // Non-standard URL (e.g. some internal browser pages) — continue without the ignoredSites check
+    }
 
     // Check cache first
     const cachedCount = await getCachedFeedCount(url);
     if (cachedCount !== null) {
         // Use cached result
-        if (cachedCount === 0 || !showBadge) {
+        if (cachedCount === 0) {
             chrome.action.setBadgeText({ text: "", tabId: tabId });
         } else {
             chrome.action.setBadgeText({ text: cachedCount.toString(), tabId: tabId });
-            chrome.action.setBadgeBackgroundColor({ color: "#82b2faff", tabId: tabId });
+            chrome.action.setBadgeBackgroundColor({ color: "#82b2fa", tabId: tabId });
         }
         return;
     }
 
     let feedCount = 0;
     let source = "html"; // Default source
+    let fetchFailed = false; // true if we couldn't get a definitive answer (network/anti-bot, not "no feeds")
 
     // Check known services (YouTube, Reddit, GitHub, etc.)
     const knownFeeds = checkIfUrlIsKnown(url);
@@ -160,29 +168,42 @@ async function updateBadge(tabId, url) {
         // Otherwise, fetch and parse the HTML
         try {
             const html = await fetchHtmlSource(url);
+            fetchFailed = html === null;
             if (html) {
                 feedCount = countFeedsFromHtml(html);
             }
 
             // If no feed found in HTML, try common feed URL suffixes
             if (feedCount === 0) {
-                feedCount = await tryToFindFeedCount(url);
-                source = "suffixes";
+                const suffixCount = await tryToFindFeedCount(url);
+                if (suffixCount > 0) {
+                    // Only claim the origin-wide "suffixes" source when the probe actually found
+                    // something — otherwise a zero here would bypass the per-path cache
+                    // invalidation below and hide real feeds on other pages of the same site.
+                    feedCount = suffixCount;
+                    source = "suffixes";
+                    fetchFailed = false; // the suffix probe did give us a definitive answer
+                }
             }
         } catch (error) {
-            // Silent on error (CORS, etc.)
+            fetchFailed = true; // Silent on error (CORS, etc.)
         }
     }
 
-    // Save to cache with source
-    await cacheFeedCount(url, feedCount, source);
+    // Save to cache — unless the page fetch itself failed and the suffix probe found nothing
+    // either. In that case we don't actually know whether the site has no feeds or we were just
+    // blocked/offline, so skip the cache entirely rather than locking in a false "0" for up to
+    // 7 days (CACHE_EXPIRATION_NEGATIVE).
+    if (!fetchFailed || feedCount > 0) {
+        await cacheFeedCount(url, feedCount, source);
+    }
 
     // Update badge
-    if (feedCount === 0 || !showBadge) {
+    if (feedCount === 0) {
         chrome.action.setBadgeText({ text: "", tabId: tabId });
     } else {
         chrome.action.setBadgeText({ text: feedCount.toString(), tabId: tabId });
-        chrome.action.setBadgeBackgroundColor({ color: "#82b2faff", tabId: tabId });
+        chrome.action.setBadgeBackgroundColor({ color: "#82b2fa", tabId: tabId });
     }
 }
 
@@ -229,18 +250,34 @@ chrome.tabs.onRemoved.addListener(function(tabId) {
 });
 
 // Listen for messages from popup to update badge
-chrome.runtime.onMessage.addListener(function(request) {
-    if (request.action === "updateBadge" && request.tabId) {
-        chrome.storage.sync.get(['showBadge'], function(result) {
-            const showBadge = result.showBadge !== false;
-            if (request.feedCount === 0 || !showBadge) {
-                chrome.action.setBadgeText({ text: "", tabId: request.tabId });
-            } else {
-                chrome.action.setBadgeText({ text: request.feedCount.toString(), tabId: request.tabId });
-                chrome.action.setBadgeBackgroundColor({ color: "#82b2faff", tabId: request.tabId });
-            }
-        });
-    }
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    // Only trust messages from this extension's own pages (popup/options) — without this,
+    // any other installed extension could set an arbitrary badge on an arbitrary tab.
+    if (sender.id !== chrome.runtime.id) return;
+    if (request.action !== "updateBadge") return;
+    if (!Number.isInteger(request.tabId) || !Number.isInteger(request.feedCount)) return;
+
+    chrome.storage.sync.get(['showBadge'], async function(result) {
+        const showBadge = result.showBadge !== false;
+        if (request.feedCount === 0 || !showBadge) {
+            chrome.action.setBadgeText({ text: "", tabId: request.tabId });
+        } else {
+            chrome.action.setBadgeText({ text: request.feedCount.toString(), tabId: request.tabId });
+            chrome.action.setBadgeBackgroundColor({ color: "#82b2fa", tabId: request.tabId });
+        }
+
+        // The popup's own detection is more thorough than the worker's (it also runs the
+        // suffix fallback), so let it refresh the cache too — otherwise the badge can keep
+        // flipping between the popup's and the worker's answer for the same page (Finding 7).
+        if (typeof request.url === 'string') {
+            await cacheFeedCount(request.url, request.feedCount, "popup");
+        }
+
+        sendResponse();
+    });
+    // Keep the message channel open until the async storage.sync.get callback above completes,
+    // otherwise Chrome may suspend the service worker before the badge gets updated.
+    return true;
 });
 
 async function removeAllContextMenus() {
@@ -309,7 +346,9 @@ chrome.runtime.onInstalled.addListener(async () => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
-    await createActionContextMenus();
+    // Context menus don't need to be recreated here: Chrome persists them across browser
+    // restarts, and re-creating them on every startup risked racing with onInstalled's own
+    // removeAll()/create() calls on a Chrome update (duplicate-id / missing-parent errors).
     await cleanExpiredCache();
 });
 

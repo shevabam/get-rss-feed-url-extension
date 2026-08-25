@@ -1,8 +1,9 @@
 {
     "manifest_version": 3,
     "name": "Get RSS Feed URL",
-    "description": "Retreive RSS feeds URLs from Website",
+    "description": "Retrieve the RSS/Atom feed URLs of any website",
     "version": "4.0.0",
+    "minimum_chrome_version": "88",
     "author": "@shevabam",
     "homepage_url": "https://github.com/shevabam/get-rss-feed-url-extension",
     "permissions": [
